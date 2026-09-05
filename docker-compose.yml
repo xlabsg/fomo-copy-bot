@@ -1,0 +1,15 @@
+services:
+  fomo-copy-bot:
+    image: ghcr.io/xlabsg/fomo-copy-bot:latest
+    container_name: fomo-copy-bot
+    restart: unless-stopped
+    volumes:
+      - ./data:/app/data
+      - ./config.json:/app/config.json
+      - ./wallets.json:/app/wallets.json
+    env_file:
+      - path: .env
+        required: false
+    environment:
+      - PYTHONUNBUFFERED=1
+    command: ["--auto", "--paper"]

@@ -186,6 +186,34 @@ When you are ready to trade on-chain with real funds:
 
 ---
 
+## Docker & GitHub Actions CI/CD Deployment
+
+### 1. Run with Docker Compose
+
+Run the copybot containerized on any Linux/Mac server:
+
+```bash
+# Start container in background
+docker compose up -d
+
+# Follow container logs
+docker compose logs -f
+
+# Check container status
+docker compose ps
+
+# Stop container
+docker compose down
+```
+
+### 2. Automated CI/CD with GitHub Actions
+
+The repository includes an automated GitHub Actions pipeline (`.github/workflows/deploy.yml`):
+- **Build & Push**: Automatically builds and pushes the image to GitHub Container Registry (`ghcr.io/xlabsg/fomo-copy-bot:latest`) on every push to `main`.
+- **Remote Deploy**: Securely SSHs into your AWS server, syncs `docker-compose.yml` and configs, pulls the latest image, and restarts the container with zero downtime.
+
+---
+
 ## CLI Command Summary
 
 | Command | Description |
