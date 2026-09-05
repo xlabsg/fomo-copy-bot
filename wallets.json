@@ -3,21 +3,21 @@
     "address": "0x0a6ebed0155edb4b21d92ad02897a626cd90119e",
     "label": "unipcs",
     "score": 100.0,
-    "pnl_usd": 15499382.0,
+    "pnl_usd": 15355859.0,
     "volume_usd": 2913240.0,
-    "trades": 2750,
+    "trades": 2751,
     "windows": [
       "24h",
       "7d",
       "30d"
     ],
-    "updated_at": "2026-09-05T01:38:41.285649+00:00"
+    "updated_at": "2026-09-05T01:44:31.661847+00:00"
   },
   {
     "address": "0xcc0c581613dfd4ace7c8686668427236f8bd5cc5",
     "label": "0xAvast",
     "score": 100.0,
-    "pnl_usd": 3311860.0,
+    "pnl_usd": 3316275.0,
     "volume_usd": 1454733.0,
     "trades": 650,
     "windows": [
@@ -25,13 +25,13 @@
       "7d",
       "30d"
     ],
-    "updated_at": "2026-09-05T01:38:41.285668+00:00"
+    "updated_at": "2026-09-05T01:44:31.661861+00:00"
   },
   {
     "address": "0x2fbd041a069bb3d7099d55179169091cfeec4221",
     "label": "rasmr",
     "score": 100.0,
-    "pnl_usd": 1077309.0,
+    "pnl_usd": 1107022.0,
     "volume_usd": 6320048.0,
     "trades": 666,
     "windows": [
@@ -39,33 +39,610 @@
       "7d",
       "30d"
     ],
-    "updated_at": "2026-09-05T01:38:41.285672+00:00"
+    "updated_at": "2026-09-05T01:44:31.661864+00:00"
   },
   {
     "address": "0x696d1265c8fc4f14797abebfae3c43ebfa9d8e28",
     "label": "frankdegods",
     "score": 100.0,
-    "pnl_usd": 1713642.0,
-    "volume_usd": 49000957.0,
-    "trades": 4610,
+    "pnl_usd": 1735771.0,
+    "volume_usd": 49007428.0,
+    "trades": 4613,
     "windows": [
       "24h",
       "7d",
       "30d"
     ],
-    "updated_at": "2026-09-05T01:38:41.285675+00:00"
+    "updated_at": "2026-09-05T01:44:31.661867+00:00"
   },
   {
     "address": "0xd874259110c6e086f1d2fee474b73e69b8f5dab0",
     "label": "Binkieee",
     "score": 100.0,
-    "pnl_usd": 1150068.0,
+    "pnl_usd": 1153940.0,
     "volume_usd": 11989001.0,
     "trades": 1612,
     "windows": [
       "24h",
       "7d"
     ],
-    "updated_at": "2026-09-05T01:38:41.285679+00:00"
+    "updated_at": "2026-09-05T01:44:31.661869+00:00"
+  },
+  {
+    "address": "0xf7514424abb4ced3a637511a7557eaaa44188a37",
+    "label": "cryptolyxe",
+    "score": 100.0,
+    "pnl_usd": 1606159.0,
+    "volume_usd": 828861.0,
+    "trades": 1093,
+    "windows": [
+      "24h",
+      "7d",
+      "30d"
+    ],
+    "updated_at": "2026-09-05T01:44:31.661872+00:00"
+  },
+  {
+    "address": "0x0c175c6a0065ee05f871a68783d2de432a1e6cbe",
+    "label": "Aurelius0121",
+    "score": 100.0,
+    "pnl_usd": 1201047.0,
+    "volume_usd": 9758461.0,
+    "trades": 2858,
+    "windows": [
+      "24h",
+      "30d"
+    ],
+    "updated_at": "2026-09-05T01:44:31.661874+00:00"
+  },
+  {
+    "address": "0x03ba951f72e59899ac8dab30cb5624dbe5d52bb8",
+    "label": "Rowdy",
+    "score": 100.0,
+    "pnl_usd": 1666555.0,
+    "volume_usd": 8220327.0,
+    "trades": 1803,
+    "windows": [
+      "24h",
+      "30d"
+    ],
+    "updated_at": "2026-09-05T01:44:31.661875+00:00"
+  },
+  {
+    "address": "0x17fb03925acec7a799022ad5e268d2f27e9748b3",
+    "label": "NachSOL",
+    "score": 100.0,
+    "pnl_usd": 1049781.0,
+    "volume_usd": 7700275.0,
+    "trades": 1316,
+    "windows": [
+      "24h",
+      "30d"
+    ],
+    "updated_at": "2026-09-05T01:44:31.661877+00:00"
+  },
+  {
+    "address": "0x8f62a08537cede87d511aca6436274ab4ca080a3",
+    "label": "DumbCrayonEater",
+    "score": 100.0,
+    "pnl_usd": 6570595.0,
+    "volume_usd": 1038738.0,
+    "trades": 2361,
+    "windows": [
+      "7d",
+      "30d"
+    ],
+    "updated_at": "2026-09-05T01:44:31.661879+00:00"
+  },
+  {
+    "address": "0x06de9c48b1e639ed5c13ec8fbd4080a38e39f2d1",
+    "label": "AvgJoesCrypto",
+    "score": 100.0,
+    "pnl_usd": 4034049.0,
+    "volume_usd": 2050070.0,
+    "trades": 930,
+    "windows": [
+      "7d",
+      "30d"
+    ],
+    "updated_at": "2026-09-05T01:44:31.661880+00:00"
+  },
+  {
+    "address": "0xb8f305f27ccc406373de0082cc06cb1d065504ea",
+    "label": "Salem1299534",
+    "score": 100.0,
+    "pnl_usd": 5139498.0,
+    "volume_usd": 2386876.0,
+    "trades": 1211,
+    "windows": [
+      "7d",
+      "30d"
+    ],
+    "updated_at": "2026-09-05T01:44:31.661882+00:00"
+  },
+  {
+    "address": "0x8e4f5d00a5f4d7877a0f66b98fdf9d40323bc52a",
+    "label": "brrrgrrrz",
+    "score": 100.0,
+    "pnl_usd": 3552490.0,
+    "volume_usd": 4123808.0,
+    "trades": 2521,
+    "windows": [
+      "7d",
+      "30d"
+    ],
+    "updated_at": "2026-09-05T01:44:31.661883+00:00"
+  },
+  {
+    "address": "0x8afc1142f5d3ca6c55bbc8c81d0c9cdf2cce380c",
+    "label": "0xnobi",
+    "score": 100.0,
+    "pnl_usd": 1978092.0,
+    "volume_usd": 1059015.0,
+    "trades": 882,
+    "windows": [
+      "7d",
+      "30d"
+    ],
+    "updated_at": "2026-09-05T01:44:31.661884+00:00"
+  },
+  {
+    "address": "0x39b337121494b10cffe3e581ab3281b2d62c5b08",
+    "label": "kyle",
+    "score": 100.0,
+    "pnl_usd": 2084305.0,
+    "volume_usd": 1456186.0,
+    "trades": 714,
+    "windows": [
+      "7d",
+      "30d"
+    ],
+    "updated_at": "2026-09-05T01:44:31.661886+00:00"
+  },
+  {
+    "address": "0xb02208d1b27811480cf6171bccc2b7af9513cddb",
+    "label": "notanicecat69",
+    "score": 100.0,
+    "pnl_usd": 2655340.0,
+    "volume_usd": 6631809.0,
+    "trades": 1186,
+    "windows": [
+      "7d",
+      "30d"
+    ],
+    "updated_at": "2026-09-05T01:44:31.661887+00:00"
+  },
+  {
+    "address": "0x1605b59dfe3c1742c815d604aab6a2faa3a5c91f",
+    "label": "econoar",
+    "score": 100.0,
+    "pnl_usd": 1425029.0,
+    "volume_usd": 1477674.0,
+    "trades": 526,
+    "windows": [
+      "7d",
+      "30d"
+    ],
+    "updated_at": "2026-09-05T01:44:31.661888+00:00"
+  },
+  {
+    "address": "0xb7749bd1a4b632f54b054a15a8066fd227fc938e",
+    "label": "CardinalSaint2",
+    "score": 100.0,
+    "pnl_usd": 1953182.0,
+    "volume_usd": 1553793.0,
+    "trades": 517,
+    "windows": [
+      "7d",
+      "30d"
+    ],
+    "updated_at": "2026-09-05T01:44:31.661890+00:00"
+  },
+  {
+    "address": "0xefe9764acb00822338a80f907075c53f60a5781e",
+    "label": "inyourwalls",
+    "score": 100.0,
+    "pnl_usd": 2017045.0,
+    "volume_usd": 3169124.0,
+    "trades": 1320,
+    "windows": [
+      "7d",
+      "30d"
+    ],
+    "updated_at": "2026-09-05T01:44:31.661893+00:00"
+  },
+  {
+    "address": "0x44fbe0006661d6d17188f1f6d42b32b5577179f7",
+    "label": "SolSwizzle",
+    "score": 100.0,
+    "pnl_usd": 2052891.0,
+    "volume_usd": 8269098.0,
+    "trades": 1201,
+    "windows": [
+      "7d",
+      "30d"
+    ],
+    "updated_at": "2026-09-05T01:44:31.661894+00:00"
+  },
+  {
+    "address": "0x52c754cbaa03a8cda2b3d125ec441f9d754da037",
+    "label": "carlwheezor",
+    "score": 100.0,
+    "pnl_usd": 1173643.0,
+    "volume_usd": 2296354.0,
+    "trades": 1636,
+    "windows": [
+      "7d",
+      "30d"
+    ],
+    "updated_at": "2026-09-05T01:44:31.661895+00:00"
+  },
+  {
+    "address": "0xd73d6b8b9e875569c0f03c572a3806e619bcbec2",
+    "label": "Samisa_btc",
+    "score": 100.0,
+    "pnl_usd": 1183694.0,
+    "volume_usd": 611651.0,
+    "trades": 1124,
+    "windows": [
+      "7d",
+      "30d"
+    ],
+    "updated_at": "2026-09-05T01:44:31.661897+00:00"
+  },
+  {
+    "address": "0xa0670863bd5cd0d60022bab2eed78e81e1a06bce",
+    "label": "theveeman",
+    "score": 100.0,
+    "pnl_usd": 1635368.0,
+    "volume_usd": 2994551.0,
+    "trades": 1977,
+    "windows": [
+      "7d",
+      "30d"
+    ],
+    "updated_at": "2026-09-05T01:44:31.661898+00:00"
+  },
+  {
+    "address": "0xc1d4b5e64473fd90bf0390a1e0b61876064fd503",
+    "label": "jotagezin",
+    "score": 100.0,
+    "pnl_usd": 1338850.0,
+    "volume_usd": 10965424.0,
+    "trades": 2318,
+    "windows": [
+      "7d",
+      "30d"
+    ],
+    "updated_at": "2026-09-05T01:44:31.661899+00:00"
+  },
+  {
+    "address": "0x1c7a74cd8a4944aacfd61716e874e0f1bf4df38a",
+    "label": "Iknowwhyy",
+    "score": 98.68,
+    "pnl_usd": 1843547.0,
+    "volume_usd": 2633494.0,
+    "trades": 367,
+    "windows": [
+      "24h",
+      "7d",
+      "30d"
+    ],
+    "updated_at": "2026-09-05T01:44:31.661900+00:00"
+  },
+  {
+    "address": "0x11be90061fe0cf45f075ca51ae0c3bcb69c28b1d",
+    "label": "smokey0x",
+    "score": 98.36,
+    "pnl_usd": 762516.0,
+    "volume_usd": 1848819.0,
+    "trades": 535,
+    "windows": [
+      "24h",
+      "7d"
+    ],
+    "updated_at": "2026-09-05T01:44:31.661902+00:00"
+  },
+  {
+    "address": "0x2408ce75d217e3a70d6ca370c78c1b34d706f5a0",
+    "label": "ether_monk",
+    "score": 98.0,
+    "pnl_usd": 2510534.0,
+    "volume_usd": 9959280.0,
+    "trades": 2058,
+    "windows": [
+      "30d"
+    ],
+    "updated_at": "2026-09-05T01:44:31.661903+00:00"
+  },
+  {
+    "address": "0x0121525f755c9e7bbc525bba6672716ab46ced57",
+    "label": "Quanterty",
+    "score": 98.0,
+    "pnl_usd": 1885885.0,
+    "volume_usd": 7324051.0,
+    "trades": 1475,
+    "windows": [
+      "30d"
+    ],
+    "updated_at": "2026-09-05T01:44:31.661904+00:00"
+  },
+  {
+    "address": "0xa37cd19f9a6fdcc323ba42fa498807b4212222f3",
+    "label": "picadura",
+    "score": 98.0,
+    "pnl_usd": 1327948.0,
+    "volume_usd": 4467973.0,
+    "trades": 920,
+    "windows": [
+      "30d"
+    ],
+    "updated_at": "2026-09-05T01:44:31.661906+00:00"
+  },
+  {
+    "address": "0xcbaea88c17888e3c7b84117bd6ebbdbf4f95b810",
+    "label": "397397",
+    "score": 98.0,
+    "pnl_usd": 1159387.0,
+    "volume_usd": 1443205.0,
+    "trades": 1487,
+    "windows": [
+      "30d"
+    ],
+    "updated_at": "2026-09-05T01:44:31.661907+00:00"
+  },
+  {
+    "address": "0x0e17fc4e333958e7b259ab652f334b2f5bbdb27e",
+    "label": "SerAvocado",
+    "score": 98.0,
+    "pnl_usd": 1059086.0,
+    "volume_usd": 2794681.0,
+    "trades": 1170,
+    "windows": [
+      "30d"
+    ],
+    "updated_at": "2026-09-05T01:44:31.661908+00:00"
+  },
+  {
+    "address": "0x2ed589426559024110e203a05a27efb49f4ed093",
+    "label": "FullPinkYak",
+    "score": 97.89,
+    "pnl_usd": 1895823.0,
+    "volume_usd": 2628895.0,
+    "trades": 365,
+    "windows": [
+      "24h",
+      "7d",
+      "30d"
+    ],
+    "updated_at": "2026-09-05T01:44:31.661910+00:00"
+  },
+  {
+    "address": "0x50c0b87bdf73888cc5972a40f060ee8d08e836b2",
+    "label": "m0f0",
+    "score": 97.87,
+    "pnl_usd": 1155556.0,
+    "volume_usd": 1807822.0,
+    "trades": 756,
+    "windows": [
+      "7d",
+      "30d"
+    ],
+    "updated_at": "2026-09-05T01:44:31.661911+00:00"
+  },
+  {
+    "address": "0x712b009be8006d28738fd4810ee1440e277bae03",
+    "label": "lordarbiter",
+    "score": 95.12,
+    "pnl_usd": 2222718.0,
+    "volume_usd": 1039376.0,
+    "trades": 353,
+    "windows": [
+      "7d",
+      "30d"
+    ],
+    "updated_at": "2026-09-05T01:44:31.661912+00:00"
+  },
+  {
+    "address": "0x3740315ddb76c09c873eddb71fcf3e2802991abe",
+    "label": "aki11a",
+    "score": 95.04,
+    "pnl_usd": 1693321.0,
+    "volume_usd": 1138342.0,
+    "trades": 351,
+    "windows": [
+      "7d",
+      "30d"
+    ],
+    "updated_at": "2026-09-05T01:44:31.661913+00:00"
+  },
+  {
+    "address": "0x8224c04a8f66557df682fd0581eb3724bd2bee07",
+    "label": "loganlim_x",
+    "score": 94.87,
+    "pnl_usd": 718569.0,
+    "volume_usd": 10597378.0,
+    "trades": 1768,
+    "windows": [
+      "7d"
+    ],
+    "updated_at": "2026-09-05T01:44:31.661915+00:00"
+  },
+  {
+    "address": "0xd1c77a04b87393e98a1220532e72e8f7d0a31c5a",
+    "label": "The__Solstice",
+    "score": 94.85,
+    "pnl_usd": 716166.0,
+    "volume_usd": 2317717.0,
+    "trades": 1401,
+    "windows": [
+      "7d"
+    ],
+    "updated_at": "2026-09-05T01:44:31.661916+00:00"
+  },
+  {
+    "address": "0xdb5cb33ccaf4a5c7f509b2e80f0ee9ed67861942",
+    "label": "justtesting",
+    "score": 94.77,
+    "pnl_usd": 1263777.0,
+    "volume_usd": 2049180.0,
+    "trades": 365,
+    "windows": [
+      "7d",
+      "30d"
+    ],
+    "updated_at": "2026-09-05T01:44:31.661917+00:00"
+  },
+  {
+    "address": "0xcb01c5f4697f555172bf1c2c5f52cde84a9480bb",
+    "label": "cryptochi3f_",
+    "score": 93.86,
+    "pnl_usd": 1139207.0,
+    "volume_usd": 1547820.0,
+    "trades": 633,
+    "windows": [
+      "30d"
+    ],
+    "updated_at": "2026-09-05T01:44:31.661918+00:00"
+  },
+  {
+    "address": "0x0f9a7a53b36daf1f52fe7a616ea4b25c532d2fd2",
+    "label": "soby0x",
+    "score": 93.0,
+    "pnl_usd": 1699473.0,
+    "volume_usd": 691889.0,
+    "trades": 300,
+    "windows": [
+      "7d",
+      "30d"
+    ],
+    "updated_at": "2026-09-05T01:44:31.661920+00:00"
+  },
+  {
+    "address": "0xf1882812aacac1df9a58195dbbd2f97fe48f81f2",
+    "label": "cosby",
+    "score": 92.52,
+    "pnl_usd": 2862143.0,
+    "volume_usd": 1617842.0,
+    "trades": 288,
+    "windows": [
+      "7d",
+      "30d"
+    ],
+    "updated_at": "2026-09-05T01:44:31.661921+00:00"
+  },
+  {
+    "address": "0x551ee8420d4a1711e5f63eb47c532738940805c8",
+    "label": "bluntz_capital",
+    "score": 92.28,
+    "pnl_usd": 1675962.0,
+    "volume_usd": 9525064.0,
+    "trades": 282,
+    "windows": [
+      "7d",
+      "30d"
+    ],
+    "updated_at": "2026-09-05T01:44:31.661922+00:00"
+  },
+  {
+    "address": "0xaf3a73c19118409936bdea72fd975c7539f85359",
+    "label": "RugDalio",
+    "score": 92.16,
+    "pnl_usd": 2401266.0,
+    "volume_usd": 458510.0,
+    "trades": 302,
+    "windows": [
+      "7d",
+      "30d"
+    ],
+    "updated_at": "2026-09-05T01:44:31.661924+00:00"
+  },
+  {
+    "address": "0x609d52370d132d178a9c06c0b5028d35b653e858",
+    "label": "rodotfun",
+    "score": 90.45,
+    "pnl_usd": 378792.0,
+    "volume_usd": 8471201.0,
+    "trades": 1680,
+    "windows": [
+      "24h"
+    ],
+    "updated_at": "2026-09-05T01:44:31.661925+00:00"
+  },
+  {
+    "address": "0x6150b917c11443d5c885ea6751db92a38fd4f5a4",
+    "label": "macdegods",
+    "score": 90.27,
+    "pnl_usd": 304149.0,
+    "volume_usd": 3276742.0,
+    "trades": 939,
+    "windows": [
+      "24h"
+    ],
+    "updated_at": "2026-09-05T01:44:31.661926+00:00"
+  },
+  {
+    "address": "0x1bcc5f67cd17e13770f199fa03bc043b0cde1143",
+    "label": "ogle",
+    "score": 89.41,
+    "pnl_usd": 3579975.0,
+    "volume_usd": 324029.0,
+    "trades": 308,
+    "windows": [
+      "7d",
+      "30d"
+    ],
+    "updated_at": "2026-09-05T01:44:31.661927+00:00"
+  },
+  {
+    "address": "0x1fce5a5d5b00c8a8cd80e8bdc608ebf8eb17cd7e",
+    "label": "LP1111",
+    "score": 89.28,
+    "pnl_usd": 1941766.0,
+    "volume_usd": 857624.0,
+    "trades": 207,
+    "windows": [
+      "7d",
+      "30d"
+    ],
+    "updated_at": "2026-09-05T01:44:31.661929+00:00"
+  },
+  {
+    "address": "0xdc5e4898fae6f88dc4825783196ecb8d02209ba9",
+    "label": "cryptoalbus",
+    "score": 89.27,
+    "pnl_usd": 907316.0,
+    "volume_usd": 954882.0,
+    "trades": 174,
+    "windows": [
+      "24h",
+      "7d",
+      "30d"
+    ],
+    "updated_at": "2026-09-05T01:44:31.661930+00:00"
+  },
+  {
+    "address": "0xd4cf04bc9d7c80b49c6c30a633f7b9bd5370b4d6",
+    "label": "himgajria",
+    "score": 87.28,
+    "pnl_usd": 685380.0,
+    "volume_usd": 450456.0,
+    "trades": 347,
+    "windows": [
+      "7d"
+    ],
+    "updated_at": "2026-09-05T01:44:31.661932+00:00"
+  },
+  {
+    "address": "0x53644cb9f8e6067c8fd5d546b1fd06805067a3ef",
+    "label": "NoGiOlMoKiNi",
+    "score": 87.06,
+    "pnl_usd": 276830.0,
+    "volume_usd": 520769.0,
+    "trades": 529,
+    "windows": [
+      "24h"
+    ],
+    "updated_at": "2026-09-05T01:44:31.661933+00:00"
   }
 ]

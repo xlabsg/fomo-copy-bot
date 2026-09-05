@@ -2,8 +2,10 @@
   "live": false,
   "router": "0xc33046f9fe8dbC8323C3A9f9dE50754b45bBF5fb",
   "rpc": "https://rpc.mainnet.chain.robinhood.com",
-  "poll_seconds": 0.5,
+  "poll_seconds": 2.0,
+  "heartbeat_seconds": 30,
   "buy_usd": 100,
+  "paper_cash_usd": 100000,
   "max_positions": 20,
   "min_liquidity_usd": 10000,
   "min_origin_usd": 50,
@@ -26,7 +28,7 @@
   "holdings_scan_blocks": 3000000,
   "exclude_tokens": [],
   "skip_stock_tokens": true,
-  "_note": "skip_stock_tokens drops every '... • Robinhood Token' (tokenized stocks/ETFs). stablecoins are never copied. exclude_tokens = extra symbols/addresses to ignore.",
+  "_note": "skip_stock_tokens drops every '... \u2022 Robinhood Token' (tokenized stocks/ETFs). stablecoins are never copied. exclude_tokens = extra symbols/addresses to ignore.",
   "log_chunk_blocks": 10,
   "max_catchup_blocks": 3000,
   "fallback_rpc": "https://rpc.mainnet.chain.robinhood.com",
@@ -50,6 +52,10 @@
     "min_trades": 5,
     "min_volume_usd": 2000,
     "min_pnl_usd": 100,
-    "windows": ["24h", "7d", "30d"]
+    "windows": [
+      "24h",
+      "7d",
+      "30d"
+    ]
   }
 }

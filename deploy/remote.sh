@@ -6,7 +6,7 @@
 #   push        push code/config changes, then restart both bots
 #   sell SYM    sell a live position            adopt TOKEN USD   adopt an orphaned bag
 #   notify      (re)start the Telegram notifier and show its pairing code    notifylogs  follow it
-HOST="${RH_HOST:-root@165.22.178.226}"
+HOST="${RH_HOST:?Please set RH_HOST environment variable (e.g., export RH_HOST=root@YOUR_DROPLET_IP)}"
 cd "$(dirname "$0")/.."
 case "${1:-}" in
   logs)      exec ssh -t "$HOST" 'journalctl -fu rh-copybot -o cat' ;;
