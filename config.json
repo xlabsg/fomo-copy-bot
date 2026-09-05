@@ -36,13 +36,23 @@
   "native_eth_routes": true,
   "fallback_poll_seconds": 3,
   "log_chunk_blocks_open": 300,
+  "consensus": {
+    "enabled": false,
+    "min_leaders": 2,
+    "window_seconds": 180
+  },
   "discovery": {
     "enabled": true,
     "interval_hours": 2.0,
+    "sources": [
+      "fomo",
+      "trenches"
+    ],
     "top_n": 50,
     "min_trades": 5,
     "min_volume_usd": 2000,
     "min_pnl_usd": 100,
+    "trenches_min_win_rate": 0.45,
     "windows": [
       "24h",
       "7d",

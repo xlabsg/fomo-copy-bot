@@ -27,14 +27,14 @@ def log(msg: str):
     print(f"[{time.strftime('%H:%M:%S')}] [Runner] {msg}", flush=True)
 
 
-def background_discovery_worker(interval_hours: float, top_n: int, windows: list):
+def background_discovery_worker(interval_hours: float, top_n: int, windows: list, sources: list = None, min_win_rate: float = 0.45):
     from auto_discovery import TraderDiscovery
-    discovery = TraderDiscovery()
+    discovery = TraderDiscovery(trenches_min_win_rate=min_win_rate)
     while True:
         try:
             time.sleep(interval_hours * 3600)
             log(f"Periodic discovery triggered (every {interval_hours}h)...")
-            traders = discovery.discover(windows=windows, top_n=top_n)
+            traders = discovery.discover(windows=windows, top_n=top_n, sources=sources)
             discovery.export_to_wallets_json(traders)
             log(f"Discovery refreshed {len(traders)} traders. bot.py will hot-reload automatically.")
         except Exception as e:
@@ -45,6 +45,7 @@ def main():
     parser = argparse.ArgumentParser(description="FOMO Auto-Discovery & Copy Trading System")
     parser.add_argument("--discover", action="store_true", help="Run trader discovery and exit")
     parser.add_argument("--top", type=int, default=None, help="Top N traders to follow (default from config or 50)")
+    parser.add_argument("--sources", type=str, default=None, help="Discovery sources (e.g. fomo,trenches)")
     parser.add_argument("--auto", action="store_true", help="Run bot with periodic background auto-discovery")
     parser.add_argument("--paper", action="store_true", help="Force paper mode (simulated fills)")
     parser.add_argument("--live", action="store_true", help="Force live execution mode")
@@ -59,7 +60,9 @@ def main():
     discovery_cfg = cfg.get("discovery", {})
     top_n = args.top or discovery_cfg.get("top_n", 50)
     windows = discovery_cfg.get("windows", ["24h", "7d", "30d"])
+    sources = [s.strip() for s in args.sources.split(",")] if args.sources else discovery_cfg.get("sources", ["fomo", "trenches"])
     interval_hours = discovery_cfg.get("interval_hours", 2.0)
+    min_win_rate = discovery_cfg.get("trenches_min_win_rate", 0.45)
 
     # 1. Quick commands
     if args.status:
@@ -76,8 +79,9 @@ def main():
             min_trades=discovery_cfg.get("min_trades", 5),
             min_volume_usd=discovery_cfg.get("min_volume_usd", 2000.0),
             min_pnl_usd=discovery_cfg.get("min_pnl_usd", 100.0),
+            trenches_min_win_rate=min_win_rate,
         )
-        traders = discovery.discover(windows=windows, top_n=top_n)
+        traders = discovery.discover(windows=windows, top_n=top_n, sources=sources)
         discovery.export_to_wallets_json(traders)
         print_traders_table(traders)
         return
@@ -100,8 +104,9 @@ def main():
             min_trades=discovery_cfg.get("min_trades", 5),
             min_volume_usd=discovery_cfg.get("min_volume_usd", 2000.0),
             min_pnl_usd=discovery_cfg.get("min_pnl_usd", 100.0),
+            trenches_min_win_rate=min_win_rate,
         )
-        traders = discovery.discover(windows=windows, top_n=top_n)
+        traders = discovery.discover(windows=windows, top_n=top_n, sources=sources)
         discovery.export_to_wallets_json(traders)
         print_traders_table(traders[:10])
 
@@ -120,7 +125,7 @@ def main():
         log(f"Spawning background auto-discovery worker (every {interval_hours}h)...")
         t = threading.Thread(
             target=background_discovery_worker,
-            args=(interval_hours, top_n, windows),
+            args=(interval_hours, top_n, windows, sources, min_win_rate),
             daemon=True,
         )
         t.start()

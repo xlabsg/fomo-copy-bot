@@ -999,6 +999,9 @@ def recently_closed(tok):
     return any(c["token"] == tok.lower() and c["closed_at"] > cutoff for c in STATE["closed"])
 
 
+RECENT_LEADER_BUYS = {}  # tok.lower() -> list of dicts: {"wallet", "label", "ts", "tx", "usd"}
+
+
 def handle_buy_signal(ev, tok, raw):
     """A watched wallet received `raw` of `tok` in a swap. Copy it if new."""
     meta = token_meta(tok)
@@ -1073,6 +1076,39 @@ def handle_buy_signal(ev, tok, raw):
     t_route = time.time()  # route discovered + quoted
     t0 = t_route
     lat = None
+
+    # Consensus (multi-leader resonance) check
+    consensus_cfg = CFG.get("consensus", {})
+    if consensus_cfg.get("enabled", False):
+        min_leaders = consensus_cfg.get("min_leaders", 2)
+        window_s = consensus_cfg.get("window_seconds", 180)
+        min_leader_usd = consensus_cfg.get("min_leader_usd", CFG.get("min_origin_usd", 50))
+        now_ts = time.time()
+
+        buys = RECENT_LEADER_BUYS.setdefault(tok.lower(), [])
+        if not any(b["tx"] == ev["tx"] and b["wallet"] == ev["wallet"] for b in buys):
+            buys.append({
+                "wallet": ev["wallet"],
+                "label": sig["label"],
+                "ts": now_ts,
+                "usd": origin_usd,
+                "tx": ev["tx"]
+            })
+        # Prune expired or under-sized buys
+        buys = [b for b in buys if (now_ts - b["ts"]) <= window_s and b["usd"] >= min_leader_usd]
+        RECENT_LEADER_BUYS[tok.lower()] = buys
+
+        distinct_leaders = {b["wallet"]: b["label"] for b in buys}
+        n_leaders = len(distinct_leaders)
+        if n_leaders < min_leaders:
+            leaders_str = ", ".join(distinct_leaders.values())
+            sig["consensus"] = f"{n_leaders}/{min_leaders}"
+            return skip(f"consensus pending: {n_leaders}/{min_leaders} leaders ({leaders_str}) in last {window_s}s")
+        else:
+            leaders_str = ", ".join(distinct_leaders.values())
+            log(f"  [consensus] {n_leaders}/{min_leaders} leaders bought {meta['symbol']} ({leaders_str})! Triggering consensus copy!")
+            sig["consensus"] = f"{n_leaders}/{min_leaders} (confirmed)"
+
     if not CFG["live"]:
         if paper_cash() < CFG["buy_usd"]:
             return skip(f"insufficient paper cash ({fmt_usd(paper_cash())})")
@@ -1093,8 +1129,14 @@ def handle_buy_signal(ev, tok, raw):
 
     # THE BUY IS DONE: record it before anything else can fail. (Once, a crash in
     # the bookkeeping below made the same signal re-fire nine times.)
+    consensus_buys = RECENT_LEADER_BUYS.get(tok.lower(), [])
+    consensus_origins = list(set([b["wallet"] for b in consensus_buys] + [ev["wallet"]]))
+    consensus_labels = list(set([b["label"] for b in consensus_buys] + [WALLETS.get(ev["wallet"], "origin")]))
+
     pos = {"token": tok, "symbol": meta["symbol"], "decimals": meta["decimals"], "sell_simulated": None,
-           "origin": ev["wallet"], "origin_label": WALLETS[ev["wallet"]], "signal_tx": ev["tx"],
+           "origin": ev["wallet"], "origin_label": WALLETS[ev["wallet"]],
+           "origins": consensus_origins, "origin_labels": consensus_labels,
+           "signal_tx": ev["tx"],
            "bought_at": time.time(), "buy_usd": CFG["buy_usd"], "buy_tx": tx_hash,
            "initial_raw": got, "remaining_raw": got, "legs_sell": legs_sell, "route": desc,
            "stages_done": [], "origin_exiting": False, "origin_done": False,
@@ -1142,10 +1184,14 @@ def handle_buy_signal(ev, tok, raw):
 
 def handle_sell_event(ev, tok):
     pos = open_position(tok)
-    if pos and pos["origin"] == ev["wallet"] and not pos["origin_exiting"]:
+    if not pos or pos.get("origin_exiting"):
+        return
+    is_origin = (pos.get("origin") == ev["wallet"]) or (ev["wallet"] in pos.get("origins", []))
+    if is_origin:
         pos["origin_exiting"] = True
         save_state()
-        log(f"  [origin exit] {pos['origin_label']} is selling {pos['symbol']} -> releasing final tranche")
+        seller = WALLETS.get(ev["wallet"], pos.get("origin_label", "origin"))
+        log(f"  [origin exit] {seller} is selling {pos['symbol']} -> releasing final tranche")
 
 
 _done_signals = {}  # (tx, wallet) -> ts; belt-and-braces against re-processing a window
