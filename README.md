@@ -64,7 +64,7 @@ An autonomous copy-trading and smart-money tracking system on **Robinhood Chain 
 ### 1. Installation
 
 ```bash
-git clone https://github.com/sydowma/fomo-copy-bot.git
+git clone https://github.com/xlabsg/fomo-copy-bot.git
 cd fomo-copy-bot
 
 # Recommended: using uv
