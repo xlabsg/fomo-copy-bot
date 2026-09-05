@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: MIT
+// SPDX-License-Identifier: Apache-2.0
 pragma solidity ^0.8.24;
 
 import {CopyRouter, PoolKey, IERC20, ISwapRouter02, IPoolManager} from "../src/CopyRouter.sol";
