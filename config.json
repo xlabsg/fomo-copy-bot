@@ -12,16 +12,7 @@
   "max_price_impact_pct": 10,
   "max_signal_age_s": 120,
   "slippage_pct": 3,
-  "exits": [
-    {
-      "after_minutes": 5,
-      "pct": 75
-    },
-    {
-      "after_minutes": 10,
-      "pct": 25
-    }
-  ],
+  "exits": [],
   "reentry_cooldown_hours": 24,
   "honeypot_check": true,
   "sell_retry_seconds": 300,
