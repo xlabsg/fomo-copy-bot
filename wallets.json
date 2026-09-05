@@ -1,0 +1,71 @@
+[
+  {
+    "address": "0x0a6ebed0155edb4b21d92ad02897a626cd90119e",
+    "label": "unipcs",
+    "score": 100.0,
+    "pnl_usd": 15499382.0,
+    "volume_usd": 2913240.0,
+    "trades": 2750,
+    "windows": [
+      "24h",
+      "7d",
+      "30d"
+    ],
+    "updated_at": "2026-09-05T01:38:41.285649+00:00"
+  },
+  {
+    "address": "0xcc0c581613dfd4ace7c8686668427236f8bd5cc5",
+    "label": "0xAvast",
+    "score": 100.0,
+    "pnl_usd": 3311860.0,
+    "volume_usd": 1454733.0,
+    "trades": 650,
+    "windows": [
+      "24h",
+      "7d",
+      "30d"
+    ],
+    "updated_at": "2026-09-05T01:38:41.285668+00:00"
+  },
+  {
+    "address": "0x2fbd041a069bb3d7099d55179169091cfeec4221",
+    "label": "rasmr",
+    "score": 100.0,
+    "pnl_usd": 1077309.0,
+    "volume_usd": 6320048.0,
+    "trades": 666,
+    "windows": [
+      "24h",
+      "7d",
+      "30d"
+    ],
+    "updated_at": "2026-09-05T01:38:41.285672+00:00"
+  },
+  {
+    "address": "0x696d1265c8fc4f14797abebfae3c43ebfa9d8e28",
+    "label": "frankdegods",
+    "score": 100.0,
+    "pnl_usd": 1713642.0,
+    "volume_usd": 49000957.0,
+    "trades": 4610,
+    "windows": [
+      "24h",
+      "7d",
+      "30d"
+    ],
+    "updated_at": "2026-09-05T01:38:41.285675+00:00"
+  },
+  {
+    "address": "0xd874259110c6e086f1d2fee474b73e69b8f5dab0",
+    "label": "Binkieee",
+    "score": 100.0,
+    "pnl_usd": 1150068.0,
+    "volume_usd": 11989001.0,
+    "trades": 1612,
+    "windows": [
+      "24h",
+      "7d"
+    ],
+    "updated_at": "2026-09-05T01:38:41.285679+00:00"
+  }
+]

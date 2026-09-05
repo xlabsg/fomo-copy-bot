@@ -1,0 +1,4 @@
+requests>=2.31
+eth-account>=0.13
+eth-abi>=5
+websocket-client>=1.6

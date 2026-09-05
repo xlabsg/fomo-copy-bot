@@ -1,0 +1,55 @@
+{
+  "live": false,
+  "router": "0xc33046f9fe8dbC8323C3A9f9dE50754b45bBF5fb",
+  "rpc": "https://rpc.mainnet.chain.robinhood.com",
+  "poll_seconds": 0.5,
+  "buy_usd": 100,
+  "max_positions": 20,
+  "min_liquidity_usd": 10000,
+  "min_origin_usd": 50,
+  "max_price_impact_pct": 10,
+  "max_signal_age_s": 120,
+  "slippage_pct": 3,
+  "exits": [
+    {
+      "after_minutes": 5,
+      "pct": 75
+    },
+    {
+      "after_minutes": 10,
+      "pct": 25
+    }
+  ],
+  "reentry_cooldown_hours": 24,
+  "honeypot_check": true,
+  "sell_retry_seconds": 300,
+  "holdings_scan_blocks": 3000000,
+  "exclude_tokens": [],
+  "skip_stock_tokens": true,
+  "_note": "skip_stock_tokens drops every '... • Robinhood Token' (tokenized stocks/ETFs). stablecoins are never copied. exclude_tokens = extra symbols/addresses to ignore.",
+  "log_chunk_blocks": 10,
+  "max_catchup_blocks": 3000,
+  "fallback_rpc": "https://rpc.mainnet.chain.robinhood.com",
+  "max_round_trip_loss_pct": 15,
+  "thin_liquidity_usd": 50000,
+  "thin_min_sells_24h": 5,
+  "min_gas_eth": 0.003,
+  "critical_gas_eth": 0.0008,
+  "sell_slippage_pct": 6,
+  "rpc_batching": true,
+  "ws": false,
+  "ws_backstop_seconds": 20,
+  "ws_stale_seconds": 90,
+  "native_eth_routes": true,
+  "fallback_poll_seconds": 3,
+  "log_chunk_blocks_open": 300,
+  "discovery": {
+    "enabled": true,
+    "interval_hours": 2.0,
+    "top_n": 50,
+    "min_trades": 5,
+    "min_volume_usd": 2000,
+    "min_pnl_usd": 100,
+    "windows": ["24h", "7d", "30d"]
+  }
+}

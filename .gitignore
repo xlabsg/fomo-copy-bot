@@ -1,0 +1,9 @@
+.env
+data/
+__pycache__/
+contracts/out/
+contracts/cache/
+.venv/
+.pytest_cache/
+.DS_Store
+*.tmp

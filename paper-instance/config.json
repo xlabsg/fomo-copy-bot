@@ -1,0 +1,42 @@
+{
+  "live": false,
+  "router": "",
+  "rpc": "https://rpc.mainnet.chain.robinhood.com",
+  "poll_seconds": 3,
+  "buy_usd": 100,
+  "max_positions": 1000,
+  "min_liquidity_usd": 10000,
+  "min_origin_usd": 50,
+  "max_price_impact_pct": 10,
+  "max_signal_age_s": 120,
+  "slippage_pct": 3,
+  "exits": [
+    {
+      "after_minutes": 5,
+      "pct": 75
+    },
+    {
+      "after_minutes": 10,
+      "pct": 25
+    }
+  ],
+  "reentry_cooldown_hours": 24,
+  "honeypot_check": true,
+  "sell_retry_seconds": 300,
+  "holdings_scan_blocks": 3000000,
+  "exclude_tokens": [],
+  "skip_stock_tokens": true,
+  "_note": "skip_stock_tokens drops every '... \u2022 Robinhood Token' (tokenized stocks/ETFs). stablecoins are never copied. exclude_tokens = extra symbols/addresses to ignore.",
+  "log_chunk_blocks": 50,
+  "max_catchup_blocks": 600,
+  "fallback_rpc": "https://rpc.mainnet.chain.robinhood.com",
+  "max_round_trip_loss_pct": 15,
+  "thin_liquidity_usd": 50000,
+  "thin_min_sells_24h": 5,
+  "paper_cash_usd": 100000,
+  "_paper_note": "parallel PAPER instance: same wallets + filters as the live bot, $100/position from a $100K simulated bankroll. Public RPC (no Alchemy quota shared with the live bot), 50-block windows.",
+  "sell_slippage_pct": 6,
+  "ws": true,
+  "ws_backstop_seconds": 20,
+  "ws_stale_seconds": 90
+}

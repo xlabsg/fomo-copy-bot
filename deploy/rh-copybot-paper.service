@@ -1,0 +1,18 @@
+[Unit]
+Description=rh-copybot (PAPER)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+WorkingDirectory=/opt/rh-copybot-paper
+Environment=BOT_HOME=/opt/rh-copybot-paper
+EnvironmentFile=-/opt/rh-copybot/.env
+Environment=PYTHONUNBUFFERED=1
+ExecStart=/opt/rh-copybot/.venv/bin/python -u /opt/rh-copybot/bot.py
+Restart=always
+RestartSec=5
+KillSignal=SIGINT
+TimeoutStopSec=20
+
+[Install]
+WantedBy=multi-user.target

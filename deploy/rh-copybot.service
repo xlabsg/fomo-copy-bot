@@ -1,0 +1,16 @@
+[Unit]
+Description=rh-copybot (LIVE)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+WorkingDirectory=/opt/rh-copybot
+ExecStart=/opt/rh-copybot/.venv/bin/python -u bot.py
+Restart=always
+RestartSec=5
+Environment=PYTHONUNBUFFERED=1
+KillSignal=SIGINT
+TimeoutStopSec=20
+
+[Install]
+WantedBy=multi-user.target

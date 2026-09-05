@@ -1,0 +1,14 @@
+[Unit]
+Description=rh-copybot Telegram notifier (separate process; never touches the bot)
+After=network-online.target rh-copybot.service
+Wants=network-online.target
+
+[Service]
+WorkingDirectory=/opt/rh-copybot
+ExecStart=/opt/rh-copybot/.venv/bin/python -u notify.py
+Restart=always
+RestartSec=5
+Environment=PYTHONUNBUFFERED=1
+
+[Install]
+WantedBy=multi-user.target

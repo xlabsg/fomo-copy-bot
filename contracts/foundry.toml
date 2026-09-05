@@ -1,0 +1,8 @@
+[profile.default]
+src = "src"
+out = "out"
+libs = []
+optimizer = true
+optimizer_runs = 200
+# cancun required: Uniswap V4 PoolManager uses transient storage (TSTORE/TLOAD)
+evm_version = "cancun"
