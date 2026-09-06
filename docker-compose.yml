@@ -7,6 +7,7 @@ services:
       - ./data:/app/data
       - ./config.json:/app/config.json
       - ./wallets.json:/app/wallets.json
+      - ./bot.py:/app/bot.py
     env_file:
       - path: .env
         required: false

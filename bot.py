@@ -1141,7 +1141,8 @@ def handle_buy_signal(ev, tok, raw):
            "initial_raw": got, "remaining_raw": got, "legs_sell": legs_sell, "route": desc,
            "stages_done": [], "origin_exiting": False, "origin_done": False,
            "usdg_out": 0.0, "sells": [], "retry_after": 0, "paper": not CFG["live"],
-           "signal_age_s": sig["signal_age_s"], "latency": None}
+           "signal_age_s": sig["signal_age_s"], "latency": None,
+           "peak_ret_pct": 0.0, "breakeven_active": False, "_last_price_check": 0.0}
     STATE["positions"][tok] = pos
     save_state()
 
@@ -1462,7 +1463,7 @@ def write_off_if_dead(pos, now):
         return False
     if (info.get("liquidity") or 0) > 0:
         return False
-    pos["dead_since"] = pos.get("dead_since") or now
+    pos["dead_since"] = pos.get("dead_since") or pos.get("bought_at", now)
     if now - pos["dead_since"] < 1800:
         return False
     pos.update(closed_at=now, pnl_usd=pos["usdg_out"] - pos["buy_usd"], note="pool drained (rugged); written off")
@@ -1532,11 +1533,85 @@ def adopt_position(token, usd, bought_at=None):
            "initial_raw": bal, "remaining_raw": bal, "legs_sell": legs_sell, "route": desc,
            "stages_done": [], "origin_exiting": False, "origin_done": False,
            "usdg_out": 0.0, "sells": [], "retry_after": 0, "paper": False, "signal_age_s": None,
-           "latency": None, "note": "adopted from wallet"}
+           "latency": None, "note": "adopted from wallet",
+           "peak_ret_pct": 0.0, "breakeven_active": False, "_last_price_check": 0.0}
     STATE["positions"][tok] = pos
     save_state()
     log(f"  [adopted] {meta['symbol']}: {bal / 10**meta['decimals']:,.4g} tokens, cost basis {fmt_usd(usd)}, "
         f"exits run on the normal schedule")
+
+
+def check_position_risk(pos, now):
+    """Monitor live floating return and execute risk controls:
+    1. Hard Stop-Loss: Exit if floating return <= hard_stop_loss_pct (default -45%).
+    2. Break-Even Stop: Once peak profit reaches >= breakeven_trigger_pct (default +50%),
+       lift stop line to breakeven_stop_pct (default 0.0%). If price drops back, exit.
+    """
+    rc = CFG.get("risk_control", {})
+    if not rc.get("enabled", True):
+        return False
+    if pos["remaining_raw"] <= pos["initial_raw"] * 0.001:
+        return False
+
+    interval = float(rc.get("price_check_interval", 3.0))
+    if now - pos.get("_last_price_check", 0) < interval:
+        return False
+    pos["_last_price_check"] = now
+
+    # Real-time quote in USDG
+    quote = None
+    try:
+        quote = quote_route(pos["legs_sell"], pos["remaining_raw"])
+    except Exception:
+        try:
+            legs, quote = best_sell_legs(pos, pos["remaining_raw"])
+            pos["legs_sell"] = legs
+        except Exception as e:
+            if write_off_if_dead(pos, now):
+                return True
+            return False
+
+    if quote is None or quote <= 0:
+        return False
+
+    cur_usd = quote / 10**USDG_DEC
+    cost_usd = pos["buy_usd"] * (pos["remaining_raw"] / pos["initial_raw"]) if pos.get("initial_raw") else pos["buy_usd"]
+    if cost_usd <= 0:
+        return False
+
+    ret_pct = (cur_usd / cost_usd - 1.0) * 100.0
+
+    # Dynamic peak profit tracking
+    be_trigger = float(rc.get("breakeven_trigger_pct", 50.0))
+    be_stop = float(rc.get("breakeven_stop_pct", 0.0))
+    if "peak_ret_pct" not in pos or ret_pct > pos.get("peak_ret_pct", -100.0):
+        pos["peak_ret_pct"] = round(ret_pct, 1)
+        if pos["peak_ret_pct"] >= be_trigger and not pos.get("breakeven_active"):
+            pos["breakeven_active"] = True
+            log(f"  [risk] {pos['symbol']} peak profit hit {pos['peak_ret_pct']:+.1f}% >= +{be_trigger:.0f}%: "
+                f"BREAK-EVEN STOP ACTIVATED at {be_stop:+.1f}%")
+            save_state()
+
+    # Rule 1: Break-even stop (if armed)
+    if pos.get("breakeven_active") and ret_pct <= be_stop:
+        log(f"  [risk] {pos['symbol']} TRIGGER BREAK-EVEN STOP: cur {ret_pct:+.1f}% <= {be_stop:+.1f}% "
+            f"(peak was {pos.get('peak_ret_pct', 0.0):+.1f}%)")
+        sell(pos, pos["remaining_raw"], f"breakeven stop (peak {pos.get('peak_ret_pct', 0.0):+.1f}%)")
+        pos["origin_done"] = True
+        save_state()
+        return True
+
+    # Rule 2: Hard stop-loss (if not under break-even protection)
+    hard_sl = float(rc.get("hard_stop_loss_pct", -45.0))
+    if not pos.get("breakeven_active") and ret_pct <= hard_sl:
+        log(f"  [risk] {pos['symbol']} TRIGGER HARD STOP-LOSS: cur {ret_pct:+.1f}% <= {hard_sl:+.1f}% "
+            f"(basis {fmt_usd(cost_usd)}, cur {fmt_usd(cur_usd)})")
+        sell(pos, pos["remaining_raw"], f"hard stop loss ({ret_pct:+.1f}%)")
+        pos["origin_done"] = True
+        save_state()
+        return True
+
+    return False
 
 
 def run_exits():
@@ -1568,6 +1643,9 @@ def run_exits():
                 STATE["closed"].append(pos)
                 del STATE["positions"][tok]
                 save_state()
+                continue
+            if check_position_risk(pos, now):
+                close_if_done(pos, now)
                 continue
             for i, st in enumerate(CFG["exits"]):
                 if i in pos["stages_done"] or elapsed < stage_seconds(st):
@@ -1896,6 +1974,10 @@ def cmd_status():
         flags = ""
         if pos.get("sell_simulated") is False:
             flags += " SELL-SIM-FAILED"
+        if pos.get("breakeven_active"):
+            flags += f" [BREAKEVEN-ARMED: peak {pos.get('peak_ret_pct', 0.0):+.0f}%]"
+        elif pos.get("peak_ret_pct") is not None and pos.get("peak_ret_pct") > 0:
+            flags += f" [peak {pos['peak_ret_pct']:+.0f}%]"
         if pos.get("retry_after", 0) > time.time():
             flags += f" sell-retry-in-{int(pos['retry_after'] - time.time())}s"
         print(f"  {pos['symbol']:<10} {fmt_usd(pos['buy_usd']):>8} in | held {fmt_usd(value):>9} "
