@@ -8,7 +8,7 @@ class TestTokenAgeFilter(unittest.TestCase):
         bot.CFG["live"] = False
         bot.CFG["min_token_age_minutes"] = 30
         bot.CFG["min_trades_24h"] = 100
-        bot.CFG["min_mcap_usd"] = 100000
+        bot.CFG["min_mcap_usd"] = 150000
         bot.CFG["min_origin_usd"] = 50
         bot.CFG["min_liquidity_usd"] = 1000
         bot.CFG["thin_liquidity_usd"] = 0
@@ -134,7 +134,7 @@ class TestTokenAgeFilter(unittest.TestCase):
              patch("bot.log") as mock_log:
             bot.handle_buy_signal(ev, ev["token"], 1000 * 10**18)
             skip_logs = [call_args[0][0] for call_args in mock_log.call_args_list if "[skip]" in str(call_args)]
-            self.assertTrue(any("market cap $4,000.00 below min $100,000.00" in s for s in skip_logs))
+            self.assertTrue(any("market cap $4,000.00 below min $150,000.00" in s for s in skip_logs))
 
     def test_low_trades_24h_skipped(self):
         ev = self.make_event()
