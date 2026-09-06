@@ -14,4 +14,4 @@ services:
         required: false
     environment:
       - PYTHONUNBUFFERED=1
-    command: ["--auto", "--paper"]
+    command: ["--auto", "--live"]
