@@ -407,7 +407,7 @@ def token_info(token, fresh=False):
     if not fresh and key in _px_cache and now - _px_cache[key][0] < PRICE_TTL:
         return _px_cache[key][1]
     info = {"price": None, "liquidity": 0.0, "symbol": None, "buys24": 0, "sells24": 0, "pairs": [],
-            "pair_created_at": None, "age_seconds": None}
+            "pair_created_at": None, "age_seconds": None, "mcap": 0.0}
     try:
         pairs = [p for p in (dex_get(f"https://api.dexscreener.com/latest/dex/tokens/{token}")
                              .get("pairs") or []) if p.get("chainId") == "robinhood"]
@@ -435,9 +435,10 @@ def token_info(token, fresh=False):
             except (ValueError, ZeroDivisionError):
                 px = None
         if px is not None and (best is None or liq > best[0]):
-            best = (liq, float(px), sym)
+            mcap = float(p.get("marketCap") or p.get("fdv") or 0)
+            best = (liq, float(px), sym, mcap)
     if best:
-        info.update(liquidity=best[0], price=best[1], symbol=best[2])
+        info.update(liquidity=best[0], price=best[1], symbol=best[2], mcap=best[3])
     _px_cache[key] = (now, info)
     if info["price"] is not None:
         _px_good[key] = info
@@ -1094,6 +1095,11 @@ def handle_buy_signal(ev, tok, raw):
         total_txns = (info.get("buys24") or 0) + (info.get("sells24") or 0)
         if total_txns < min_trades_24h:
             return skip(f"low activity: only {total_txns} trades in 24h < min {min_trades_24h}")
+    min_mcap = float(CFG.get("min_mcap_usd", 0))
+    if min_mcap > 0:
+        cur_mcap = float(info.get("mcap") or 0)
+        if cur_mcap < min_mcap:
+            return skip(f"market cap {fmt_usd(cur_mcap)} below min {fmt_usd(min_mcap)}")
     if info["liquidity"] < CFG.get("thin_liquidity_usd", 50000):
         # small pool: insist that OTHER people have actually sold recently
         need = CFG.get("thin_min_sells_24h", 5)

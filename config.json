@@ -11,6 +11,7 @@
   "min_origin_usd": 50,
   "min_token_age_minutes": 30,
   "min_trades_24h": 100,
+  "min_mcap_usd": 100000,
   "max_price_impact_pct": 10,
   "max_signal_age_s": 120,
   "slippage_pct": 3,
