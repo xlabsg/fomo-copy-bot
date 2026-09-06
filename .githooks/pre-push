@@ -1,0 +1,10 @@
+#!/usr/bin/env bash
+# Pre-push hook to prevent leaking private keys, tokens, or credentials
+python3 scripts/security_check.py
+status=$?
+if [ $status -ne 0 ]; then
+    echo ""
+    echo -e "\033[1;31m[PUSH ABORTED]\033[0m Security check failed. Please remove sensitive data before pushing."
+    exit 1
+fi
+exit 0
