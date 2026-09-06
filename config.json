@@ -9,6 +9,7 @@
   "max_positions": 12,
   "min_liquidity_usd": 10000,
   "min_origin_usd": 50,
+  "min_token_age_minutes": 30,
   "max_price_impact_pct": 10,
   "max_signal_age_s": 120,
   "slippage_pct": 3,

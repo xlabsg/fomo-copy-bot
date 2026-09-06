@@ -112,6 +112,31 @@ def check_wallets_reload():
         log(f"  [warn] failed to check/reload wallets.json: {e}")
 
 
+_cfg_mtime = (ROOT / "config.json").stat().st_mtime if (ROOT / "config.json").exists() else 0.0
+_last_cfg_check = 0.0
+
+def check_config_reload():
+    global CFG, _cfg_mtime, _last_cfg_check, SLIPPAGE, ROUTER
+    now = time.time()
+    if now - _last_cfg_check < 5.0:
+        return
+    _last_cfg_check = now
+    c_path = ROOT / "config.json"
+    if not c_path.exists():
+        return
+    try:
+        mtime = c_path.stat().st_mtime
+        if mtime != _cfg_mtime:
+            _cfg_mtime = mtime
+            new_cfg = json.loads(c_path.read_text())
+            CFG.update(new_cfg)
+            SLIPPAGE = CFG.get("slippage_pct", 3) / 100
+            ROUTER = CFG.get("router") or ROUTER
+            log("  [HOT-RELOAD] config.json reloaded from disk!")
+    except Exception as e:
+        log(f"  [warn] failed to check/reload config.json: {e}")
+
+
 def log(msg):
     print(time.strftime("%H:%M:%S"), msg, flush=True)
 
@@ -381,7 +406,8 @@ def token_info(token, fresh=False):
     now = time.time()
     if not fresh and key in _px_cache and now - _px_cache[key][0] < PRICE_TTL:
         return _px_cache[key][1]
-    info = {"price": None, "liquidity": 0.0, "symbol": None, "buys24": 0, "sells24": 0, "pairs": []}
+    info = {"price": None, "liquidity": 0.0, "symbol": None, "buys24": 0, "sells24": 0, "pairs": [],
+            "pair_created_at": None, "age_seconds": None}
     try:
         pairs = [p for p in (dex_get(f"https://api.dexscreener.com/latest/dex/tokens/{token}")
                              .get("pairs") or []) if p.get("chainId") == "robinhood"]
@@ -390,6 +416,11 @@ def token_info(token, fresh=False):
     info["pairs"] = pairs
     info["buys24"] = sum(((p.get("txns") or {}).get("h24") or {}).get("buys") or 0 for p in pairs)
     info["sells24"] = sum(((p.get("txns") or {}).get("h24") or {}).get("sells") or 0 for p in pairs)
+    created_times = [p.get("pairCreatedAt") for p in pairs if p.get("pairCreatedAt")]
+    if created_times:
+        pair_created_at = min(created_times) / 1000.0
+        info["pair_created_at"] = pair_created_at
+        info["age_seconds"] = max(0.0, now - pair_created_at)
     best = None
     for p in pairs:
         liq = (p.get("liquidity") or {}).get("usd") or 0
@@ -1051,6 +1082,13 @@ def handle_buy_signal(ev, tok, raw):
         hp = honeypot_reason(info)
         if hp:
             return skip(hp)
+    min_age_m = float(CFG.get("min_token_age_minutes", 0))
+    if min_age_m > 0:
+        if info.get("pair_created_at") is None:
+            return skip(f"unknown pair launch time (cannot verify age >= {min_age_m:.0f}m)")
+        age_m = (time.time() - info["pair_created_at"]) / 60.0
+        if age_m < min_age_m:
+            return skip(f"token age {age_m:.1f}m < min {min_age_m:.0f}m (fresh launch)")
     if info["liquidity"] < CFG.get("thin_liquidity_usd", 50000):
         # small pool: insist that OTHER people have actually sold recently
         need = CFG.get("thin_min_sells_24h", 5)
@@ -1936,6 +1974,7 @@ def cmd_run():
                 continue
             time.sleep(poll if rpc_url() == RPC_URL else max(poll, CFG.get("fallback_poll_seconds", 3.0)))
             check_wallets_reload()
+            check_config_reload()
             last = poll_once(STATE["last_block"])
             process_commands()
             run_exits()
