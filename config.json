@@ -10,6 +10,7 @@
   "min_liquidity_usd": 10000,
   "min_origin_usd": 50,
   "min_token_age_minutes": 30,
+  "min_trades_24h": 100,
   "max_price_impact_pct": 10,
   "max_signal_age_s": 120,
   "slippage_pct": 3,
@@ -61,10 +62,14 @@
     ]
   },
   "risk_control": {
-    "enabled": false,
+    "enabled": true,
+    "hard_stop_loss_enabled": false,
     "hard_stop_loss_pct": -45.0,
-    "breakeven_trigger_pct": 50.0,
+    "breakeven_enabled": true,
+    "breakeven_trigger_pct": 35.0,
     "breakeven_stop_pct": 0.0,
+    "stagnant_timeout_hours": 6.0,
+    "stagnant_max_txns_24h": 80,
     "price_check_interval": 3.0
   }
 }

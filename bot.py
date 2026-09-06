@@ -1089,6 +1089,11 @@ def handle_buy_signal(ev, tok, raw):
         age_m = (time.time() - info["pair_created_at"]) / 60.0
         if age_m < min_age_m:
             return skip(f"token age {age_m:.1f}m < min {min_age_m:.0f}m (fresh launch)")
+    min_trades_24h = int(CFG.get("min_trades_24h", 0))
+    if min_trades_24h > 0:
+        total_txns = (info.get("buys24") or 0) + (info.get("sells24") or 0)
+        if total_txns < min_trades_24h:
+            return skip(f"low activity: only {total_txns} trades in 24h < min {min_trades_24h}")
     if info["liquidity"] < CFG.get("thin_liquidity_usd", 50000):
         # small pool: insist that OTHER people have actually sold recently
         need = CFG.get("thin_min_sells_24h", 5)
@@ -1493,22 +1498,28 @@ def find_unrecorded_sale(pos, known_txs):
 
 def write_off_if_dead(pos, now):
     """A pool whose liquidity was pulled quotes nothing forever. Once the token
-    has shown zero liquidity for 30+ minutes and the bag is unsellable, close it
+    has shown zero liquidity or is unroutable for 30+ minutes and the bag is unsellable, close it
     as a loss so the exit loop stops retrying it every hour."""
+    is_unroutable = False
+    try:
+        legs_buy, legs_sell, desc, depth = discover_route(pos["token"])
+    except Exception:
+        is_unroutable = True
     try:
         info = token_info(pos["token"], fresh=True)
     except Exception:
-        return False
-    if (info.get("liquidity") or 0) > 0:
+        info = {}
+    liq = (info.get("liquidity") or 0)
+    if liq > 0 and not is_unroutable:
         return False
     pos["dead_since"] = pos.get("dead_since") or pos.get("bought_at", now)
     if now - pos["dead_since"] < 1800:
         return False
-    pos.update(closed_at=now, pnl_usd=pos["usdg_out"] - pos["buy_usd"], note="pool drained (rugged); written off")
+    pos.update(closed_at=now, pnl_usd=pos["usdg_out"] - pos["buy_usd"], note="pool drained or unroutable (rugged); written off")
     STATE["closed"].append(pos)
     STATE["positions"].pop(pos["token"], None)
     save_state()
-    log(f"  [closed] {pos['symbol']}: pool drained, no liquidity left — written off at {fmt_usd(pos['pnl_usd'])}")
+    log(f"  [closed] {pos['symbol']}: pool drained or unroutable, no liquidity left — written off at {fmt_usd(pos['pnl_usd'])}")
     return True
 
 
@@ -1580,16 +1591,35 @@ def adopt_position(token, usd, bought_at=None):
 
 
 def check_position_risk(pos, now):
-    """Monitor live floating return and execute risk controls:
-    1. Hard Stop-Loss: Exit if floating return <= hard_stop_loss_pct (default -45%).
-    2. Break-Even Stop: Once peak profit reaches >= breakeven_trigger_pct (default +50%),
+    """Monitor live floating return and execute asymmetric risk controls:
+    1. Stagnant Dead-Pool Cleanup: Exit if held >= stagnant_timeout_hours (default 6h)
+       and 24h trading volume is dead (txns <= stagnant_max_txns_24h, default 80).
+    2. Break-Even Stop: Once peak profit reaches >= breakeven_trigger_pct (default +35%),
        lift stop line to breakeven_stop_pct (default 0.0%). If price drops back, exit.
+    3. Hard Stop-Loss: Optional fallback, only active if hard_stop_loss_enabled is true.
     """
     rc = CFG.get("risk_control", {})
     if not rc.get("enabled", True):
         return False
     if pos["remaining_raw"] <= pos["initial_raw"] * 0.001:
         return False
+
+    elapsed = now - pos["bought_at"]
+
+    # Rule 0: Stagnant dead-pool cleanup (e.g. held > 6h with low volume)
+    stagnant_hours = float(rc.get("stagnant_timeout_hours", 0))
+    if stagnant_hours > 0 and elapsed >= stagnant_hours * 3600:
+        info = token_info(pos["token"], fresh=True)
+        if info and info.get("price") is not None:
+            txns = (info.get("buys24") or 0) + (info.get("sells24") or 0)
+            stagnant_max_txns = int(rc.get("stagnant_max_txns_24h", 80))
+            if txns <= stagnant_max_txns:
+                log(f"  [risk] {pos['symbol']} STAGNANT CLEANUP: held {elapsed/3600:.1f}h >= {stagnant_hours:.1f}h "
+                    f"with only {txns} trades in 24h (dead pool) -> releasing capital")
+                sell(pos, pos["remaining_raw"], f"stagnant cleanup ({elapsed/3600:.1f}h, {txns} txns)")
+                pos["origin_done"] = True
+                save_state()
+                return True
 
     interval = float(rc.get("price_check_interval", 3.0))
     if now - pos.get("_last_price_check", 0) < interval:
@@ -1619,19 +1649,21 @@ def check_position_risk(pos, now):
 
     ret_pct = (cur_usd / cost_usd - 1.0) * 100.0
 
-    # Dynamic peak profit tracking
-    be_trigger = float(rc.get("breakeven_trigger_pct", 50.0))
+    # Dynamic peak profit tracking & break-even stop
+    be_enabled = rc.get("breakeven_enabled", True)
+    be_trigger = float(rc.get("breakeven_trigger_pct", 35.0))
     be_stop = float(rc.get("breakeven_stop_pct", 0.0))
+
     if "peak_ret_pct" not in pos or ret_pct > pos.get("peak_ret_pct", -100.0):
         pos["peak_ret_pct"] = round(ret_pct, 1)
-        if pos["peak_ret_pct"] >= be_trigger and not pos.get("breakeven_active"):
+        if be_enabled and pos["peak_ret_pct"] >= be_trigger and not pos.get("breakeven_active"):
             pos["breakeven_active"] = True
             log(f"  [risk] {pos['symbol']} peak profit hit {pos['peak_ret_pct']:+.1f}% >= +{be_trigger:.0f}%: "
                 f"BREAK-EVEN STOP ACTIVATED at {be_stop:+.1f}%")
             save_state()
 
     # Rule 1: Break-even stop (if armed)
-    if pos.get("breakeven_active") and ret_pct <= be_stop:
+    if be_enabled and pos.get("breakeven_active") and ret_pct <= be_stop:
         log(f"  [risk] {pos['symbol']} TRIGGER BREAK-EVEN STOP: cur {ret_pct:+.1f}% <= {be_stop:+.1f}% "
             f"(peak was {pos.get('peak_ret_pct', 0.0):+.1f}%)")
         sell(pos, pos["remaining_raw"], f"breakeven stop (peak {pos.get('peak_ret_pct', 0.0):+.1f}%)")
@@ -1639,15 +1671,16 @@ def check_position_risk(pos, now):
         save_state()
         return True
 
-    # Rule 2: Hard stop-loss (if not under break-even protection)
-    hard_sl = float(rc.get("hard_stop_loss_pct", -45.0))
-    if not pos.get("breakeven_active") and ret_pct <= hard_sl:
-        log(f"  [risk] {pos['symbol']} TRIGGER HARD STOP-LOSS: cur {ret_pct:+.1f}% <= {hard_sl:+.1f}% "
-            f"(basis {fmt_usd(cost_usd)}, cur {fmt_usd(cur_usd)})")
-        sell(pos, pos["remaining_raw"], f"hard stop loss ({ret_pct:+.1f}%)")
-        pos["origin_done"] = True
-        save_state()
-        return True
+    # Rule 2: Hard stop-loss (only if hard_stop_loss_enabled is true)
+    if rc.get("hard_stop_loss_enabled", False):
+        hard_sl = float(rc.get("hard_stop_loss_pct", -45.0))
+        if not pos.get("breakeven_active") and ret_pct <= hard_sl:
+            log(f"  [risk] {pos['symbol']} TRIGGER HARD STOP-LOSS: cur {ret_pct:+.1f}% <= {hard_sl:+.1f}% "
+                f"(basis {fmt_usd(cost_usd)}, cur {fmt_usd(cur_usd)})")
+            sell(pos, pos["remaining_raw"], f"hard stop loss ({ret_pct:+.1f}%)")
+            pos["origin_done"] = True
+            save_state()
+            return True
 
     return False
 
