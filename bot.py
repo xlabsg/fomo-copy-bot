@@ -19,6 +19,7 @@ Usage:
 
 import json
 import os
+import re
 import sys
 import threading
 import time
@@ -991,6 +992,21 @@ def is_stock_token(tok):
     return "robinhood token" in (token_meta(tok).get("name") or "").lower()
 
 
+def is_chinese_token(meta, info=None):
+    """Detects whether a token's symbol, name, or DEX pair baseToken contains Chinese characters."""
+    texts = [meta.get("symbol") or "", meta.get("name") or ""]
+    if info:
+        texts.append(info.get("symbol") or "")
+        for p in info.get("pairs") or []:
+            base = p.get("baseToken") or {}
+            texts.append(base.get("symbol") or "")
+            texts.append(base.get("name") or "")
+    for t in texts:
+        if t and re.search(r"[\u4e00-\u9fff\u3400-\u4dbf\uf900-\ufaff]", str(t)):
+            return True
+    return False
+
+
 # ---------------------------------------------------------------- trading
 
 def fmt_usd(x):
@@ -1100,6 +1116,11 @@ def handle_buy_signal(ev, tok, raw):
         cur_mcap = float(info.get("mcap") or 0)
         if cur_mcap < min_mcap:
             return skip(f"market cap {fmt_usd(cur_mcap)} below min {fmt_usd(min_mcap)}")
+    chinese_min_mcap = float(CFG.get("chinese_token_min_mcap_usd", 10000000))
+    if chinese_min_mcap > 0 and is_chinese_token(meta, info):
+        cur_mcap = float(info.get("mcap") or 0)
+        if cur_mcap < chinese_min_mcap:
+            return skip(f"chinese token restricted: market cap {fmt_usd(cur_mcap)} below min {fmt_usd(chinese_min_mcap)}")
     if info["liquidity"] < CFG.get("thin_liquidity_usd", 50000):
         # small pool: insist that OTHER people have actually sold recently
         need = CFG.get("thin_min_sells_24h", 5)
@@ -1713,14 +1734,20 @@ def run_exits():
             if CFG["live"]:
                 if pos.get("pending_tx"):
                     continue  # don't send another sell while one is unresolved
-            if CFG["live"] and pos["remaining_raw"] > 0 and balance_of(tok, SIGNER.address) <= pos["initial_raw"] * 0.001:
-                log(f"  [closed] {pos['symbol']}: wallet no longer holds it (sold outside the bot)")
-                pos.update(closed_at=now, remaining_raw=0, pnl_usd=pos["usdg_out"] - pos["buy_usd"],
-                           note="sold externally")
-                STATE["closed"].append(pos)
-                del STATE["positions"][tok]
-                save_state()
-                continue
+            if CFG["live"] and pos["remaining_raw"] > 0:
+                try:
+                    bal = balance_of(tok, SIGNER.address)
+                    if bal <= pos["initial_raw"] * 0.001:
+                        log(f"  [closed] {pos['symbol']}: wallet no longer holds it (sold outside the bot)")
+                        pos.update(closed_at=now, remaining_raw=0, pnl_usd=pos["usdg_out"] - pos["buy_usd"],
+                                   note="sold externally")
+                        STATE["closed"].append(pos)
+                        del STATE["positions"][tok]
+                        save_state()
+                        continue
+                except Exception as e:
+                    log(f"  [warn] check balance {pos['symbol']}: {str(e)[:120]}")
+                    continue
             if check_position_risk(pos, now):
                 close_if_done(pos, now)
                 continue
