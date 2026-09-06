@@ -60,7 +60,7 @@
     ]
   },
   "risk_control": {
-    "enabled": true,
+    "enabled": false,
     "hard_stop_loss_pct": -45.0,
     "breakeven_trigger_pct": 50.0,
     "breakeven_stop_pct": 0.0,

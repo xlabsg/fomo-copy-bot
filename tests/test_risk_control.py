@@ -110,5 +110,17 @@ class TestRiskControl(unittest.TestCase):
             self.assertIn("peak +60.0%", args[2])
             self.assertTrue(pos["origin_done"])
 
+    def test_risk_control_disabled(self):
+        bot.CFG["risk_control"]["enabled"] = False
+        pos = self.make_pos("DUMP", buy_usd=100.0, initial_raw=10**18)
+        now = time.time()
+        # Even with -90% dump, risk control should return False when disabled
+        quote_dump = 10 * 10**bot.USDG_DEC
+        with patch("bot.quote_route", return_value=quote_dump), \
+             patch("bot.sell") as mock_sell:
+            triggered = bot.check_position_risk(pos, now)
+            self.assertFalse(triggered)
+            mock_sell.assert_not_called()
+
 if __name__ == "__main__":
     unittest.main()
