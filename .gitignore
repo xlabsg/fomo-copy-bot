@@ -1,4 +1,12 @@
+# Environment & Secrets (NEVER COMMIT)
 .env
+.env.*
+*.env
+*.key
+*.pem
+*.secret
+
+# Runtime data & caches
 data/
 __pycache__/
 contracts/out/
