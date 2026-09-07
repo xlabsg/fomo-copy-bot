@@ -101,7 +101,7 @@ class TestPayoffAndFrequencyFilter(unittest.TestCase):
 class TestMinOriginUsdGuard(unittest.TestCase):
     def setUp(self):
         bot.CFG["live"] = False
-        bot.CFG["min_origin_usd"] = 200
+        bot.CFG["min_origin_usd"] = 500
         bot.CFG["min_token_age_minutes"] = 0
         bot.CFG["min_trades_24h"] = 0
         bot.CFG["min_mcap_usd"] = 0
@@ -129,13 +129,13 @@ class TestMinOriginUsdGuard(unittest.TestCase):
     @patch("bot.balance_of", return_value=0)
     @patch("bot.block_time", return_value=time.time())
     @patch("bot.append_jsonl")
-    def test_origin_buy_below_200_skipped(self, mock_append, mock_bt, mock_bal, mock_info, mock_meta):
+    def test_origin_buy_below_500_skipped(self, mock_append, mock_bt, mock_bal, mock_info, mock_meta):
         token = "0x" + "2" * 40
         ev = self.make_event(token)
         mock_meta.return_value = {"symbol": "ALPHA", "decimals": 18}
-        # Leader bought 1000 tokens @ $0.10 = $100 origin_usd (< $200 min)
+        # Leader bought 1000 tokens @ $0.30 = $300 origin_usd (< $500 min)
         mock_info.return_value = {
-            "price": 0.10,
+            "price": 0.30,
             "liquidity": 50000.0,
             "reserve_liquidity": 50000.0,
             "mcap": 500000.0,
@@ -148,7 +148,7 @@ class TestMinOriginUsdGuard(unittest.TestCase):
         self.assertNotIn(token.lower(), bot.STATE["positions"])
         self.assertTrue(mock_append.called)
         sig = mock_append.call_args[0][1]
-        self.assertIn("origin buy only $100.00", sig["outcome"])
+        self.assertIn("origin buy only $300.00", sig["outcome"])
 
     @patch("bot.token_meta")
     @patch("bot.token_info")
@@ -157,13 +157,13 @@ class TestMinOriginUsdGuard(unittest.TestCase):
     @patch("bot.balance_of", return_value=0)
     @patch("bot.block_time", return_value=time.time())
     @patch("bot.save_state")
-    def test_origin_buy_above_200_proceeds(self, mock_save, mock_bt, mock_bal, mock_quote, mock_route, mock_info, mock_meta):
+    def test_origin_buy_above_500_proceeds(self, mock_save, mock_bt, mock_bal, mock_quote, mock_route, mock_info, mock_meta):
         token = "0x" + "3" * 40
         ev = self.make_event(token)
         mock_meta.return_value = {"symbol": "BETA", "decimals": 18}
-        # Leader bought 1000 tokens @ $0.50 = $500 origin_usd (>= $200 min)
+        # Leader bought 1000 tokens @ $0.60 = $600 origin_usd (>= $500 min)
         mock_info.return_value = {
-            "price": 0.50,
+            "price": 0.60,
             "liquidity": 50000.0,
             "reserve_liquidity": 50000.0,
             "mcap": 500000.0,

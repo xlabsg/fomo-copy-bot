@@ -9,7 +9,7 @@
   "max_positions": 12,
   "min_liquidity_usd": 10000,
   "min_reserve_liquidity_usd": 10000,
-  "min_origin_usd": 200,
+  "min_origin_usd": 500,
   "min_token_age_minutes": 30,
   "min_trades_24h": 100,
   "min_mcap_usd": 150000,
