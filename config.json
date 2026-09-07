@@ -8,6 +8,7 @@
   "paper_cash_usd": 100000,
   "max_positions": 12,
   "min_liquidity_usd": 10000,
+  "min_reserve_liquidity_usd": 10000,
   "min_origin_usd": 50,
   "min_token_age_minutes": 30,
   "min_trades_24h": 100,

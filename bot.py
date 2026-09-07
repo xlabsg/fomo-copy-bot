@@ -52,6 +52,7 @@ FEE_TIERS = (100, 500, 3000, 10000)
 FUNDING_SYMBOLS = {"WETH", "ETH", "USDC", "USDT", "USDG", "DAI"}
 MAX_UINT = 2**256 - 1
 USDG_DEC = 6
+RESERVE_TOKENS = {USDG.lower(), ZERO.lower(), WETH.lower()}
 
 LEG_T = "(uint8,bytes,(address,address,uint24,int24,address),bool)"
 SWAP_SIG = f"swap({LEG_T}[],uint256,uint256,address)"
@@ -402,13 +403,14 @@ def dex_get(url):
 
 def token_info(token, fresh=False):
     """{price, liquidity, symbol, buys24, sells24, pairs} from the deepest
-    Robinhood Chain pair. Failures are never cached; last good value served."""
+    Robinhood Chain pair. Prioritizes real reserve pairs (USDG, Native ETH, WETH)
+    over non-reserve cross pairs to prevent synthetic/fake liquidity inflation."""
     key = token.lower()
     now = time.time()
     if not fresh and key in _px_cache and now - _px_cache[key][0] < PRICE_TTL:
         return _px_cache[key][1]
-    info = {"price": None, "liquidity": 0.0, "symbol": None, "buys24": 0, "sells24": 0, "pairs": [],
-            "pair_created_at": None, "age_seconds": None, "mcap": 0.0}
+    info = {"price": None, "liquidity": 0.0, "reserve_liquidity": 0.0, "symbol": None,
+            "buys24": 0, "sells24": 0, "pairs": [], "pair_created_at": None, "age_seconds": None, "mcap": 0.0}
     try:
         pairs = [p for p in (dex_get(f"https://api.dexscreener.com/latest/dex/tokens/{token}")
                              .get("pairs") or []) if p.get("chainId") == "robinhood"]
@@ -422,24 +424,40 @@ def token_info(token, fresh=False):
         pair_created_at = min(created_times) / 1000.0
         info["pair_created_at"] = pair_created_at
         info["age_seconds"] = max(0.0, now - pair_created_at)
-    best = None
+    best_reserve = None
+    best_any = None
+    reserve_liq_total = 0.0
     for p in pairs:
-        liq = (p.get("liquidity") or {}).get("usd") or 0
+        liq = float((p.get("liquidity") or {}).get("usd") or 0)
         base, quote = p.get("baseToken", {}), p.get("quoteToken", {})
+        base_addr = (base.get("address") or "").lower()
+        quote_addr = (quote.get("address") or "").lower()
+        other = quote_addr if base_addr == key else base_addr
+        is_reserve = other in RESERVE_TOKENS
+
         px, sym = None, None
-        if (base.get("address") or "").lower() == key:
+        if base_addr == key:
             px, sym = p.get("priceUsd"), base.get("symbol")
-        elif (quote.get("address") or "").lower() == key and p.get("priceUsd") and p.get("priceNative"):
+        elif quote_addr == key and p.get("priceUsd") and p.get("priceNative"):
             sym = quote.get("symbol")
             try:
                 px = float(p["priceUsd"]) / float(p["priceNative"])
             except (ValueError, ZeroDivisionError):
                 px = None
-        if px is not None and (best is None or liq > best[0]):
+        if is_reserve:
+            reserve_liq_total += liq
+            if px is not None and (best_reserve is None or liq > best_reserve[0]):
+                mcap = float(p.get("marketCap") or p.get("fdv") or 0)
+                best_reserve = (liq, float(px), sym, mcap)
+        if px is not None and (best_any is None or liq > best_any[0]):
             mcap = float(p.get("marketCap") or p.get("fdv") or 0)
-            best = (liq, float(px), sym, mcap)
-    if best:
-        info.update(liquidity=best[0], price=best[1], symbol=best[2], mcap=best[3])
+            best_any = (liq, float(px), sym, mcap)
+
+    info["reserve_liquidity"] = reserve_liq_total
+    if best_reserve:
+        info.update(liquidity=best_reserve[0], price=best_reserve[1], symbol=best_reserve[2], mcap=best_reserve[3])
+    elif best_any:
+        info.update(liquidity=0.0, price=best_any[1], symbol=best_any[2], mcap=best_any[3])
     _px_cache[key] = (now, info)
     if info["price"] is not None:
         _px_good[key] = info
@@ -447,11 +465,20 @@ def token_info(token, fresh=False):
 
 
 def dex_pairs(token, label):
-    """Uniswap pairs of one version (v3/v4), deepest first: [(other, liq, pair_id)]."""
+    """Uniswap pairs of one version (v3/v4), deepest reserve pools first: [(other, liq, pair_id)]."""
     out = []
     pairs = [p for p in token_info(token)["pairs"]
              if p.get("dexId") == "uniswap" and (p.get("labels") or []) == [label]]
-    for p in sorted(pairs, key=lambda p: -((p.get("liquidity") or {}).get("usd") or 0)):
+    # Prioritize pairs with real reserve tokens (USDG, ETH, WETH) first
+    def _rank(p):
+        base = (p.get("baseToken", {}).get("address") or "").lower()
+        quote = (p.get("quoteToken", {}).get("address") or "").lower()
+        other = quote if base == token.lower() else base
+        liq = float((p.get("liquidity") or {}).get("usd") or 0)
+        is_reserve = 1 if other in RESERVE_TOKENS else 0
+        return (is_reserve, liq)
+
+    for p in sorted(pairs, key=_rank, reverse=True):
         base, quote = p["baseToken"]["address"], p["quoteToken"]["address"]
         other = quote if base.lower() == token.lower() else base
         liq = (p.get("liquidity") or {}).get("usd") or 0
@@ -1093,6 +1120,10 @@ def handle_buy_signal(ev, tok, raw):
     sig["origin_usd"] = round(origin_usd, 2)
     if origin_usd < CFG.get("min_origin_usd", 0):
         return skip(f"origin buy only {fmt_usd(origin_usd)}")
+    min_liq = float(CFG.get("min_reserve_liquidity_usd", CFG.get("min_liquidity_usd", 10000)))
+    res_liq = float(info.get("reserve_liquidity", info.get("liquidity", 0.0)))
+    if min_liq > 0 and res_liq < min_liq:
+        return skip(f"reserve liquidity {fmt_usd(res_liq)} in USDG/ETH below min {fmt_usd(min_liq)}")
     if info["liquidity"] < CFG.get("min_liquidity_usd", 0):
         return skip(f"liquidity {fmt_usd(info['liquidity'])} below min")
     if CFG.get("honeypot_check", True):
