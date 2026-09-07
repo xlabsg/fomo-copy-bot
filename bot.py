@@ -491,6 +491,10 @@ def honeypot_reason(info):
     b, s = info.get("buys24", 0), info.get("sells24", 0)
     if b >= 10 and s == 0:
         return f"0 sells vs {b} buys (honeypot signature)"
+    if b >= 20 and s <= 1:
+        return f"only {s} sell vs {b} buys (near-zero sell honeypot)"
+    if b >= 25 and s > 0 and b / s > 8:
+        return f"buys/sells skew {b}/{s} (ratio {b/s:.1f}x > 8x near-unsellable)"
     if b >= 30 and s > 0 and b / s > 25:
         return f"buys/sells {b}/{s} (near-unsellable)"
     return None
@@ -1124,6 +1128,13 @@ def handle_buy_signal(ev, tok, raw):
     res_liq = float(info.get("reserve_liquidity", info.get("liquidity", 0.0)))
     if min_liq > 0 and res_liq < min_liq:
         return skip(f"reserve liquidity {fmt_usd(res_liq)} in USDG/ETH below min {fmt_usd(min_liq)}")
+    max_origin_ratio_pct = float(CFG.get("max_origin_to_reserve_ratio_pct", 5.0))
+    if max_origin_ratio_pct > 0 and res_liq > 0:
+        single_sided_reserve = res_liq * 0.5
+        origin_ratio = (origin_usd / single_sided_reserve) * 100.0
+        sig["origin_reserve_ratio_pct"] = round(origin_ratio, 2)
+        if origin_ratio > max_origin_ratio_pct:
+            return skip(f"whale buy {fmt_usd(origin_usd)} is {origin_ratio:.1f}% of single-sided reserve ({fmt_usd(single_sided_reserve)}) > max {max_origin_ratio_pct:.1f}% (high dump slippage risk)")
     if info["liquidity"] < CFG.get("min_liquidity_usd", 0):
         return skip(f"liquidity {fmt_usd(info['liquidity'])} below min")
     if CFG.get("honeypot_check", True):
@@ -1173,6 +1184,49 @@ def handle_buy_signal(ev, tok, raw):
         return skip(f"price impact {impact:.1%} for {fmt_usd(CFG['buy_usd'])}")
     if round_trip < -CFG.get("max_round_trip_loss_pct", 15) / 100:
         return skip(f"round trip {round_trip:.1%} (thin pool or tax token)")
+
+    # Sell Route Pre-Quote & Depth Stress Test
+    if CFG.get("sell_pre_quote_enabled", True):
+        # 1. Base Sell Quote Revert Check
+        try:
+            back = quote_route(legs_sell, quote)
+        except Exception as e:
+            return skip(f"sell pre-quote reverted: {e}")
+        if back <= 0:
+            return skip("sell pre-quote returned 0 USDG")
+
+        # 2. Sell Price Impact Probe Check (1% probe vs 100% position)
+        probe_tokens = max(1, quote // 100)
+        try:
+            probe_back = quote_route(legs_sell, probe_tokens)
+            if probe_back > 0 and probe_tokens > 0:
+                sell_impact = 1.0 - (back / quote) / (probe_back / probe_tokens)
+            else:
+                sell_impact = 0.0
+        except Exception:
+            sell_impact = 0.0
+        sig["sell_impact"] = round(sell_impact, 4)
+        max_sell_impact = float(CFG.get("max_sell_price_impact_pct", 12.0)) / 100.0
+        if sell_impact > max_sell_impact:
+            return skip(f"sell price impact {sell_impact:.1%} > max {max_sell_impact:.1%}")
+
+        # 3. 1.5x Sell Liquidity Stress Test
+        stress_mult = float(CFG.get("sell_stress_test_multiplier", 1.5))
+        if stress_mult > 1.0:
+            stress_tokens = int(quote * stress_mult)
+            try:
+                stress_back = quote_route(legs_sell, stress_tokens)
+                if stress_back <= 0:
+                    return skip(f"sell stress test ({stress_mult:.1f}x) returned 0 USDG")
+                stress_price = stress_back / stress_tokens
+                base_price = back / quote
+                stress_impact = 1.0 - (stress_price / base_price)
+                sig["stress_impact"] = round(stress_impact, 4)
+                max_stress_impact = float(CFG.get("max_sell_stress_impact_pct", 20.0)) / 100.0
+                if stress_impact > max_stress_impact:
+                    return skip(f"sell stress impact {stress_impact:.1%} > max {max_stress_impact:.1%} ({stress_mult:.1f}x depth thin)")
+            except Exception as e:
+                return skip(f"sell stress test ({stress_mult:.1f}x) reverted: {e}")
 
     t_route = time.time()  # route discovered + quoted
     t0 = t_route
