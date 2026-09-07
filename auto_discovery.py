@@ -52,17 +52,21 @@ class TraderDiscovery:
         api_key: Optional[str] = None,
         trenches_api_base: str = DEFAULT_TRENCHES_API_BASE,
         min_trades: int = 5,
+        max_trades: int = 600,
         min_volume_usd: float = 2000.0,
         min_pnl_usd: float = 100.0,
-        trenches_min_win_rate: float = 0.45,
+        min_payoff_ratio: float = 0.8,
+        trenches_min_win_rate: float = 0.40,
         timeout: int = 15,
     ):
         self.api_base = api_base.rstrip("/")
         self.api_key = api_key or os.environ.get("FOMO_API_KEY")
         self.trenches_api_base = trenches_api_base.rstrip("/")
         self.min_trades = min_trades
+        self.max_trades = max_trades
         self.min_volume_usd = min_volume_usd
         self.min_pnl_usd = min_pnl_usd
+        self.min_payoff_ratio = min_payoff_ratio
         self.trenches_min_win_rate = trenches_min_win_rate
         self.timeout = timeout
 
@@ -137,12 +141,13 @@ class TraderDiscovery:
         # 3. Trades Activity Score (0 - 20 pts)
         if trades < self.min_trades:
             trade_score = 0.0
-        elif trades <= 500:
-            trade_score = min(20.0, trades / 25.0)
-        elif trades <= 3000:
+        elif trades <= 250:
+            trade_score = min(20.0, trades / 12.5)
+        elif trades <= 400:
             trade_score = 20.0
         else:
-            trade_score = max(5.0, 20.0 - ((trades - 3000) / 5000.0) * 10.0)
+            # Penalize high-frequency bots/market makers
+            trade_score = max(0.0, 20.0 - ((trades - 400) / 200.0) * 15.0)
 
         # 4. Social & Verification Score (0 - 15 pts)
         social_score = min(10.0, followers / 1000.0)
@@ -151,15 +156,26 @@ class TraderDiscovery:
 
         total_score = pnl_score + vol_score + trade_score + social_score
 
-        # 5. On-Chain Win Rate & Realized PnL Modifiers (from Trenches)
+        # 5. On-Chain Win Rate & Payoff Ratio Modifiers (from Trenches)
         win_rate = trader.get("win_rate")
         if win_rate is not None:
             if win_rate >= 0.60:
                 total_score += 15.0
             elif win_rate >= 0.50:
                 total_score += 10.0
-            elif win_rate < 0.40:
+            elif win_rate < 0.35:
                 total_score -= 15.0
+
+        payoff_ratio = trader.get("payoff_ratio")
+        if payoff_ratio is not None:
+            if payoff_ratio >= 3.0:
+                total_score += 15.0
+            elif payoff_ratio >= 1.5:
+                total_score += 10.0
+            elif payoff_ratio >= 1.0:
+                total_score += 5.0
+            elif payoff_ratio < 0.8:
+                total_score -= 20.0
 
         realized_pnl = trader.get("realized_pnl")
         if realized_pnl is not None:
@@ -193,16 +209,29 @@ class TraderDiscovery:
             return False
         if trades < self.min_trades:
             return False
+        if self.max_trades and trades > self.max_trades:
+            return False
 
         # On-chain sanity filters if available from trenches
         realized_pnl = trader.get("realized_pnl")
         if realized_pnl is not None and realized_pnl < 0:
             return False
 
-        win_rate = trader.get("win_rate")
         closed_trades = trader.get("closed_trades", 0)
-        if win_rate is not None and closed_trades >= 5 and win_rate < self.trenches_min_win_rate:
-            return False
+        payoff_ratio = trader.get("payoff_ratio")
+        win_rate = trader.get("win_rate")
+
+        if closed_trades >= 5:
+            # 1. Payoff Ratio Filter: discard traders whose worst loss vastly exceeds best win
+            if payoff_ratio is not None and payoff_ratio < self.min_payoff_ratio:
+                return False
+
+            # 2. Dynamic Win Rate requirement linked to Payoff Ratio:
+            # If payoff ratio is extraordinary (>= 2.0), allow lower win rate (>= 30%).
+            # Otherwise require trenches_min_win_rate (>= 40%).
+            min_wr = 0.30 if (payoff_ratio is not None and payoff_ratio >= 2.0) else self.trenches_min_win_rate
+            if win_rate is not None and win_rate < min_wr:
+                return False
 
         return True
 
@@ -276,6 +305,9 @@ class TraderDiscovery:
                     closed = int(item.get("closed_trades") or 0)
                     fills = int(item.get("fills") or 0)
                     followers = int(item.get("followers") or 0)
+                    best = float(item.get("best_trade") or 0)
+                    worst = float(item.get("worst_trade") or 0)
+                    payoff = (best / abs(worst)) if worst < 0 else (5.0 if best > 0 else 0.0)
 
                     if evm_lower not in trader_map:
                         trader_map[evm_lower] = {
@@ -289,6 +321,9 @@ class TraderDiscovery:
                             "realized_pnl": realized,
                             "win_rate": win_rate,
                             "closed_trades": closed,
+                            "best_trade": best,
+                            "worst_trade": worst,
+                            "payoff_ratio": round(payoff, 2),
                             "windows_present": [w],
                             "verified": False,
                             "sources": ["trenches"],
@@ -297,6 +332,9 @@ class TraderDiscovery:
                         trader_map[evm_lower]["realized_pnl"] = realized
                         trader_map[evm_lower]["win_rate"] = win_rate
                         trader_map[evm_lower]["closed_trades"] = closed
+                        trader_map[evm_lower]["best_trade"] = best
+                        trader_map[evm_lower]["worst_trade"] = worst
+                        trader_map[evm_lower]["payoff_ratio"] = round(payoff, 2)
                         trader_map[evm_lower]["trades"] = max(trader_map[evm_lower]["trades"], fills)
                         trader_map[evm_lower]["volumeUsd"] = max(trader_map[evm_lower]["volumeUsd"], vol)
                         if "trenches" not in trader_map[evm_lower]["sources"]:
@@ -318,21 +356,24 @@ class TraderDiscovery:
         eligible_traders.sort(key=lambda x: x["score"], reverse=True)
         selected = eligible_traders[:top_n]
 
-        log(f"Discovered {len(trader_map)} unique traders across {sources}, {len(eligible_traders)} passed filters, selected top {len(selected)}.")
+        log(f"Discovery complete: {len(trader_map)} evaluated -> {len(eligible_traders)} eligible -> top {len(selected)} selected.")
         return selected
 
     def export_to_wallets_json(
         self,
         traders: List[Dict[str, Any]],
-        output_path: Path = ROOT / "wallets.json",
-        preserve_existing_custom: bool = True,
+        output_path: Optional[Path] = None,
+        preserve_custom: bool = True,
     ) -> None:
-        """Atomically export the scored traders to wallets.json."""
+        """Export ranked traders to wallets.json, preserving custom/manual wallets if requested."""
+        if output_path is None:
+            output_path = ROOT / "wallets.json"
+
         existing_custom = {}
-        if preserve_existing_custom and output_path.exists():
+        if preserve_custom and output_path.exists():
             try:
-                raw = json.loads(output_path.read_text())
-                for entry in raw:
+                old_data = json.loads(output_path.read_text())
+                for entry in old_data:
                     if isinstance(entry, dict) and entry.get("custom"):
                         existing_custom[entry["address"].lower()] = entry
             except Exception:
@@ -355,6 +396,7 @@ class TraderDiscovery:
                 "pnl_usd": t["pnlUsd"],
                 "realized_pnl": t.get("realized_pnl"),
                 "win_rate": t.get("win_rate"),
+                "payoff_ratio": t.get("payoff_ratio"),
                 "volume_usd": t["volumeUsd"],
                 "trades": t["trades"],
                 "sources": t.get("sources", []),
@@ -386,19 +428,20 @@ def print_traders_table(traders: List[Dict[str, Any]]) -> None:
         print("No eligible traders found.")
         return
 
-    print("\n" + "=" * 105)
-    print(f"{'Rank':<5} {'Score':<7} {'Handle':<16} {'WinRate':<9} {'Realized PnL':<14} {'EVM Address':<42} {'Sources':<10}")
-    print("-" * 105)
+    print("\n" + "=" * 115)
+    print(f"{'Rank':<5} {'Score':<7} {'Handle':<16} {'WinRate':<9} {'Payoff':<8} {'Realized PnL':<14} {'EVM Address':<42} {'Sources':<10}")
+    print("-" * 115)
     for idx, t in enumerate(traders, 1):
         handle = t["label"][:14]
         addr = t["address"]
         score = f"{t['score']:.1f}"
         wr = f"{t['win_rate']:.0%}" if t.get("win_rate") is not None else "—"
+        payoff = f"{t['payoff_ratio']:.2f}" if t.get("payoff_ratio") is not None else "—"
         realized = t.get("realized_pnl")
         pnl_str = f"${realized:,.0f}" if realized is not None else f"${t['pnlUsd']:,.0f}"
         srcs = ",".join(t.get("sources", ["fomo"]))
-        print(f"{idx:<5} {score:<7} {handle:<16} {wr:<9} {pnl_str:<14} {addr:<42} {srcs:<10}")
-    print("=" * 105 + "\n")
+        print(f"{idx:<5} {score:<7} {handle:<16} {wr:<9} {payoff:<8} {pnl_str:<14} {addr:<42} {srcs:<10}")
+    print("=" * 115 + "\n")
 
 
 def run_daemon(interval_hours: float, top_n: int, windows: List[str], sources: Optional[List[str]] = None):
@@ -407,9 +450,11 @@ def run_daemon(interval_hours: float, top_n: int, windows: List[str], sources: O
     discovery_cfg = cfg.get("discovery", {})
     discovery = TraderDiscovery(
         min_trades=discovery_cfg.get("min_trades", 5),
+        max_trades=discovery_cfg.get("max_trades", 600),
         min_volume_usd=discovery_cfg.get("min_volume_usd", 2000.0),
         min_pnl_usd=discovery_cfg.get("min_pnl_usd", 100.0),
-        trenches_min_win_rate=discovery_cfg.get("trenches_min_win_rate", 0.45),
+        min_payoff_ratio=discovery_cfg.get("min_payoff_ratio", 0.8),
+        trenches_min_win_rate=discovery_cfg.get("trenches_min_win_rate", 0.40),
     )
     while True:
         try:
@@ -451,9 +496,11 @@ def main():
 
     discovery = TraderDiscovery(
         min_trades=discovery_cfg.get("min_trades", 5),
+        max_trades=discovery_cfg.get("max_trades", 600),
         min_volume_usd=discovery_cfg.get("min_volume_usd", 2000.0),
         min_pnl_usd=discovery_cfg.get("min_pnl_usd", 100.0),
-        trenches_min_win_rate=discovery_cfg.get("trenches_min_win_rate", 0.45),
+        min_payoff_ratio=discovery_cfg.get("min_payoff_ratio", 0.8),
+        trenches_min_win_rate=discovery_cfg.get("trenches_min_win_rate", 0.40),
     )
 
     traders = discovery.discover(windows=windows_list, top_n=top_n, sources=sources_list)

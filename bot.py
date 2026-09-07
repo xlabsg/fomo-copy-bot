@@ -1082,7 +1082,7 @@ def handle_buy_signal(ev, tok, raw):
     meta = token_meta(tok)
     t_detect = time.time()
     sig = {"ts": round(t_detect, 3), "tx": ev["tx"], "block": ev["block"], "wallet": ev["wallet"],
-           "label": WALLETS[ev["wallet"]], "token": tok, "symbol": meta["symbol"],
+           "label": WALLETS.get(ev["wallet"], ev["wallet"][:10]), "token": tok, "symbol": meta["symbol"],
            "amount": raw / 10**meta["decimals"]}
 
     def skip(why, quiet=False):
@@ -1235,7 +1235,7 @@ def handle_buy_signal(ev, tok, raw):
     consensus_labels = list(set([b["label"] for b in consensus_buys] + [WALLETS.get(ev["wallet"], "origin")]))
 
     pos = {"token": tok, "symbol": meta["symbol"], "decimals": meta["decimals"], "sell_simulated": None,
-           "origin": ev["wallet"], "origin_label": WALLETS[ev["wallet"]],
+           "origin": ev["wallet"], "origin_label": WALLETS.get(ev["wallet"], ev["wallet"][:10]),
            "origins": consensus_origins, "origin_labels": consensus_labels,
            "signal_tx": ev["tx"],
            "bought_at": time.time(), "buy_usd": CFG["buy_usd"], "buy_tx": tx_hash,

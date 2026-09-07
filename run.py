@@ -27,9 +27,21 @@ def log(msg: str):
     print(f"[{time.strftime('%H:%M:%S')}] [Runner] {msg}", flush=True)
 
 
-def background_discovery_worker(interval_hours: float, top_n: int, windows: list, sources: list = None, min_win_rate: float = 0.45):
+def background_discovery_worker(
+    interval_hours: float,
+    top_n: int,
+    windows: list,
+    sources: list = None,
+    min_win_rate: float = 0.40,
+    min_payoff_ratio: float = 0.8,
+    max_trades: int = 600,
+):
     from auto_discovery import TraderDiscovery
-    discovery = TraderDiscovery(trenches_min_win_rate=min_win_rate)
+    discovery = TraderDiscovery(
+        trenches_min_win_rate=min_win_rate,
+        min_payoff_ratio=min_payoff_ratio,
+        max_trades=max_trades,
+    )
     while True:
         try:
             time.sleep(interval_hours * 3600)
@@ -62,7 +74,9 @@ def main():
     windows = discovery_cfg.get("windows", ["24h", "7d", "30d"])
     sources = [s.strip() for s in args.sources.split(",")] if args.sources else discovery_cfg.get("sources", ["fomo", "trenches"])
     interval_hours = discovery_cfg.get("interval_hours", 2.0)
-    min_win_rate = discovery_cfg.get("trenches_min_win_rate", 0.45)
+    min_win_rate = discovery_cfg.get("trenches_min_win_rate", 0.40)
+    min_payoff_ratio = discovery_cfg.get("min_payoff_ratio", 0.8)
+    max_trades = discovery_cfg.get("max_trades", 600)
 
     # 1. Quick commands
     if args.status:
@@ -77,8 +91,10 @@ def main():
         from auto_discovery import TraderDiscovery, print_traders_table
         discovery = TraderDiscovery(
             min_trades=discovery_cfg.get("min_trades", 5),
+            max_trades=max_trades,
             min_volume_usd=discovery_cfg.get("min_volume_usd", 2000.0),
             min_pnl_usd=discovery_cfg.get("min_pnl_usd", 100.0),
+            min_payoff_ratio=min_payoff_ratio,
             trenches_min_win_rate=min_win_rate,
         )
         traders = discovery.discover(windows=windows, top_n=top_n, sources=sources)
@@ -102,8 +118,10 @@ def main():
         from auto_discovery import TraderDiscovery, print_traders_table
         discovery = TraderDiscovery(
             min_trades=discovery_cfg.get("min_trades", 5),
+            max_trades=max_trades,
             min_volume_usd=discovery_cfg.get("min_volume_usd", 2000.0),
             min_pnl_usd=discovery_cfg.get("min_pnl_usd", 100.0),
+            min_payoff_ratio=min_payoff_ratio,
             trenches_min_win_rate=min_win_rate,
         )
         traders = discovery.discover(windows=windows, top_n=top_n, sources=sources)
@@ -125,7 +143,7 @@ def main():
         log(f"Spawning background auto-discovery worker (every {interval_hours}h)...")
         t = threading.Thread(
             target=background_discovery_worker,
-            args=(interval_hours, top_n, windows, sources, min_win_rate),
+            args=(interval_hours, top_n, windows, sources, min_win_rate, min_payoff_ratio, max_trades),
             daemon=True,
         )
         t.start()
