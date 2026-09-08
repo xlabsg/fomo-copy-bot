@@ -149,5 +149,55 @@ class TestRiskControl(unittest.TestCase):
             self.assertFalse(triggered)
             mock_sell.assert_not_called()
 
+    def test_trailing_stop_tiers(self):
+        bot.CFG["risk_control"]["trailing_stop_enabled"] = True
+        pos = self.make_pos("TRAIL", buy_usd=100.0, initial_raw=10**18)
+        now = time.time()
+
+        # Step 1: surges +40% -> locks in +15%
+        q1 = 140 * 10**bot.USDG_DEC
+        with patch("bot.quote_route", return_value=q1), patch("bot.sell") as mock_sell, patch("bot.save_state"):
+            bot.check_position_risk(pos, now)
+            self.assertEqual(pos["trailing_stop_pct"], 15.0)
+
+        # Step 2: surges +70% -> locks in +35%
+        now += 10
+        q2 = 170 * 10**bot.USDG_DEC
+        with patch("bot.quote_route", return_value=q2), patch("bot.sell") as mock_sell, patch("bot.save_state"):
+            bot.check_position_risk(pos, now)
+            self.assertEqual(pos["trailing_stop_pct"], 35.0)
+
+        # Step 3: drops to +30% (<= +35% lock line) -> triggers trailing stop
+        now += 10
+        q3 = 130 * 10**bot.USDG_DEC
+        with patch("bot.quote_route", return_value=q3), patch("bot.sell") as mock_sell, patch("bot.save_state"):
+            triggered = bot.check_position_risk(pos, now)
+            self.assertTrue(triggered)
+            mock_sell.assert_called_once()
+            args, _ = mock_sell.call_args
+            self.assertIn("trailing stop", args[2])
+
+    def test_trailing_stop_super_pump(self):
+        # Like PRISM +693%: trails 25% from peak
+        bot.CFG["risk_control"]["trailing_stop_enabled"] = True
+        pos = self.make_pos("PRISM", buy_usd=100.0, initial_raw=10**18)
+        now = time.time()
+
+        # Surges to +200% -> stop line raised to 200 - 25 = 175%
+        q1 = 300 * 10**bot.USDG_DEC
+        with patch("bot.quote_route", return_value=q1), patch("bot.sell") as mock_sell, patch("bot.save_state"):
+            bot.check_position_risk(pos, now)
+            self.assertEqual(pos["trailing_stop_pct"], 175.0)
+
+        # Pulls back to +170% (<= 175%) -> trailing stop locks in +175% profit!
+        now += 10
+        q2 = 270 * 10**bot.USDG_DEC
+        with patch("bot.quote_route", return_value=q2), patch("bot.sell") as mock_sell, patch("bot.save_state"):
+            triggered = bot.check_position_risk(pos, now)
+            self.assertTrue(triggered)
+            mock_sell.assert_called_once()
+            args, _ = mock_sell.call_args
+            self.assertIn("trailing stop", args[2])
+
 if __name__ == "__main__":
     unittest.main()

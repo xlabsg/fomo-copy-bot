@@ -73,12 +73,15 @@
   },
   "risk_control": {
     "enabled": true,
-    "hard_stop_loss_enabled": false,
-    "hard_stop_loss_pct": -45.0,
+    "hard_stop_loss_enabled": true,
+    "hard_stop_loss_pct": -25.0,
     "breakeven_enabled": true,
-    "breakeven_trigger_pct": 35.0,
+    "breakeven_trigger_pct": 20.0,
     "breakeven_stop_pct": 0.0,
-    "stagnant_timeout_hours": 6.0,
+    "trailing_stop_enabled": true,
+    "trail_callback_pct": 25.0,
+    "stagnant_timeout_hours": 4.0,
+    "stagnant_min_peak_pct": 15.0,
     "stagnant_max_txns_24h": 80,
     "price_check_interval": 3.0
   }

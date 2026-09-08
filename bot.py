@@ -1718,8 +1718,8 @@ def check_position_risk(pos, now):
 
     elapsed = now - pos["bought_at"]
 
-    # Rule 0: Stagnant dead-pool cleanup (e.g. held > 6h with low volume)
-    stagnant_hours = float(rc.get("stagnant_timeout_hours", 0))
+    # Rule 0: Stagnant dead-pool cleanup (held >= stagnant_timeout_hours with low volume)
+    stagnant_hours = float(rc.get("stagnant_timeout_hours", 4.0))
     if stagnant_hours > 0 and elapsed >= stagnant_hours * 3600:
         info = token_info(pos["token"], fresh=True)
         if info and info.get("price") is not None:
@@ -1761,32 +1761,54 @@ def check_position_risk(pos, now):
 
     ret_pct = (cur_usd / cost_usd - 1.0) * 100.0
 
-    # Dynamic peak profit tracking & break-even stop
-    be_enabled = rc.get("breakeven_enabled", True)
-    be_trigger = float(rc.get("breakeven_trigger_pct", 35.0))
-    be_stop = float(rc.get("breakeven_stop_pct", 0.0))
-
+    # Dynamic peak profit tracking
     if "peak_ret_pct" not in pos or ret_pct > pos.get("peak_ret_pct", -100.0):
         pos["peak_ret_pct"] = round(ret_pct, 1)
-        if be_enabled and pos["peak_ret_pct"] >= be_trigger and not pos.get("breakeven_active"):
+
+    peak = float(pos.get("peak_ret_pct", 0.0) or 0.0)
+    trailing_enabled = rc.get("trailing_stop_enabled", False)
+    be_enabled = rc.get("breakeven_enabled", True)
+    be_trigger = float(rc.get("breakeven_trigger_pct", 20.0))
+    be_stop = float(rc.get("breakeven_stop_pct", 0.0))
+
+    # Calculate dynamic stop line
+    target_stop = None
+    if trailing_enabled:
+        if peak >= 100.0:
+            callback = float(rc.get("trail_callback_pct", 25.0))
+            target_stop = max(35.0, peak - callback)
+        elif peak >= 60.0:
+            target_stop = 35.0
+        elif peak >= 30.0:
+            target_stop = 15.0
+        elif be_enabled and peak >= be_trigger:
+            target_stop = be_stop
+    elif be_enabled and peak >= be_trigger:
+        target_stop = be_stop
+
+    if target_stop is not None:
+        prev_stop = pos.get("trailing_stop_pct")
+        if prev_stop is None or target_stop > prev_stop:
+            pos["trailing_stop_pct"] = round(target_stop, 1)
             pos["breakeven_active"] = True
-            log(f"  [risk] {pos['symbol']} peak profit hit {pos['peak_ret_pct']:+.1f}% >= +{be_trigger:.0f}%: "
-                f"BREAK-EVEN STOP ACTIVATED at {be_stop:+.1f}%")
+            log(f"  [risk] {pos['symbol']} profit peak {peak:+.1f}%: STOP LINE RAISED to {pos['trailing_stop_pct']:+.1f}%")
             save_state()
 
-    # Rule 1: Break-even stop (if armed)
-    if be_enabled and pos.get("breakeven_active") and ret_pct <= be_stop:
-        log(f"  [risk] {pos['symbol']} TRIGGER BREAK-EVEN STOP: cur {ret_pct:+.1f}% <= {be_stop:+.1f}% "
-            f"(peak was {pos.get('peak_ret_pct', 0.0):+.1f}%)")
-        sell(pos, pos["remaining_raw"], f"breakeven stop (peak {pos.get('peak_ret_pct', 0.0):+.1f}%)")
+    # Rule 1: Trailing Stop / Break-Even Stop Trigger
+    stop_floor = pos.get("trailing_stop_pct")
+    if stop_floor is not None and ret_pct <= stop_floor:
+        label = "trailing stop" if stop_floor > be_stop else "breakeven stop"
+        log(f"  [risk] {pos['symbol']} TRIGGER {label.upper()}: cur {ret_pct:+.1f}% <= {stop_floor:+.1f}% "
+            f"(peak was {peak:+.1f}%)")
+        sell(pos, pos["remaining_raw"], f"{label} (peak {peak:+.1f}%)")
         pos["origin_done"] = True
         save_state()
         return True
 
-    # Rule 2: Hard stop-loss (only if hard_stop_loss_enabled is true)
-    if rc.get("hard_stop_loss_enabled", False):
-        hard_sl = float(rc.get("hard_stop_loss_pct", -45.0))
-        if not pos.get("breakeven_active") and ret_pct <= hard_sl:
+    # Rule 2: Hard stop-loss
+    if rc.get("hard_stop_loss_enabled", True):
+        hard_sl = float(rc.get("hard_stop_loss_pct", -25.0))
+        if ret_pct <= hard_sl:
             log(f"  [risk] {pos['symbol']} TRIGGER HARD STOP-LOSS: cur {ret_pct:+.1f}% <= {hard_sl:+.1f}% "
                 f"(basis {fmt_usd(cost_usd)}, cur {fmt_usd(cur_usd)})")
             sell(pos, pos["remaining_raw"], f"hard stop loss ({ret_pct:+.1f}%)")
