@@ -1,5 +1,5 @@
 {
-  "live": true,
+  "live": false,
   "router": "0xc33046f9fe8dbC8323C3A9f9dE50754b45bBF5fb",
   "rpc": "https://rpc.mainnet.chain.robinhood.com",
   "poll_seconds": 2.0,
@@ -48,28 +48,51 @@
   "log_chunk_blocks_open": 300,
   "consensus": {
     "enabled": false,
+    "mode": "boost",
     "min_leaders": 2,
-    "window_seconds": 180
+    "window_seconds": 300,
+    "boost_multiplier": 1.5,
+    "max_boost_multiplier": 2.0,
+    "external_sync_enabled": true,
+    "min_external_score": 70
+  },
+  "flow_stream": {
+    "enabled": true,
+    "poll_interval_s": 2.0
   },
   "discovery": {
-    "enabled": true,
-    "interval_hours": 2.0,
+    "enabled": false,
+    "interval_minutes": 20,
+    "interval_hours": 0.33,
     "sources": [
-      "fomo",
+      "wochovy",
       "trenches"
     ],
-    "top_n": 50,
+    "top_n": 35,
     "min_trades": 5,
     "max_trades": 600,
     "min_volume_usd": 2000,
     "min_pnl_usd": 100,
-    "min_payoff_ratio": 0.8,
-    "trenches_min_win_rate": 0.40,
     "windows": [
       "24h",
       "7d",
       "30d"
     ]
+  },
+  "factor_model": {
+    "enabled": true,
+    "dynamic_sizing": true,
+    "min_payoff_ratio": 1.0,
+    "max_bag_ratio": 0.60,
+    "min_realized_pnl": 500.0,
+    "min_closed_trades": 5,
+    "min_win_rate": 0.30,
+    "max_worst_loss": 50000.0,
+    "tier_multipliers": {
+      "tier_1_elite": 1.0,
+      "tier_2_qualified": 0.5,
+      "tier_3_experimental": 0.25
+    }
   },
   "risk_control": {
     "enabled": true,
