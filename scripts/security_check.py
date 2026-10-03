@@ -71,6 +71,9 @@ def is_whitelisted(val: str) -> bool:
     v_clean = val.lower().removeprefix("0x")
     if v_clean in WHITELIST_HASHES or f"0x{v_clean}" in WHITELIST_HASHES:
         return True
+    # EVM addresses (0x + 40 hex) are public identifiers, never secrets
+    if re.fullmatch(r"0x[a-fA-F0-9]{40}", val):
+        return True
     if "<" in val or "YOUR_" in val.upper() or "EXAMPLE" in val.upper():
         return True
     return False
