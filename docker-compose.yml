@@ -8,10 +8,15 @@ services:
       - ./config.json:/app/config.json
       - ./wallets.json:/app/wallets.json
       - ./bot.py:/app/bot.py
+      - ./run.py:/app/run.py
+      - ./auto_discovery.py:/app/auto_discovery.py
+      - ./leader_eval.py:/app/leader_eval.py
+      - ./consensus.py:/app/consensus.py
+      - ./flow_stream.py:/app/flow_stream.py
       - ./.env:/app/.env
     env_file:
       - path: .env
         required: false
     environment:
       - PYTHONUNBUFFERED=1
-    command: ["--auto", "--live"]
+    command: ["--paper"]
